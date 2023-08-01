@@ -1,0 +1,36 @@
+.mutualModal {
+    background-color: rgba(1, 3, 13, 0.95);
+    height: 100vh;
+    width: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.mutualCard {
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+}
+
+@media (min-width: 900px) {
+    .mutualCard {
+        margin-top: 40px;
+    }
+}
+
+.mutualTitle {
+    font-weight: 600;
+}
+
+.alert {
+    background-color: #130641;
+    color: #fff;
+    padding: 20px 40px;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.alertHeader {
+    font-weight: 600;
+}

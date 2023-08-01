@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "PORT=5902 next dev",
+    "build": "next build",
+    "start": "PORT=5902 next start"
+  },
+  "dependencies": {
+    "@hcaptcha/react-hcaptcha": "^1.4.4",
+    "bootstrap": "^5.2.3",
+    "next": "latest",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  }
+}

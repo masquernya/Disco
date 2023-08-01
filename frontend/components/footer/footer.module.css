@@ -1,0 +1,29 @@
+.footer {
+    background-color: #07011d;
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+
+.link {
+    color: #fff;
+    opacity: .8;
+}
+.link:hover {
+    opacity:1;
+    color:#fff;
+}
+
+.linkBlog {
+    padding: 0 10px;
+}
+
+.linkList {
+    list-style-type: none;
+    padding-left: 0;
+    margin-left: 0;
+}
+
+.linkList > li {
+    float: left;
+    margin-right: 10px;
+}

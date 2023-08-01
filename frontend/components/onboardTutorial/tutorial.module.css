@@ -1,0 +1,45 @@
+.tutorial {
+    max-width: 600px;
+    margin: 4rem auto 0 auto;
+}
+
+.header {
+    font-weight: 600;
+}
+
+.page {
+
+}
+
+
+.nextButton {
+    border: none;
+    background-color: #130641;
+    color: #fff;
+    padding: 6px 16px;
+    font-weight: 600;
+    border-radius: 6px;
+    text-align: center;
+    margin: 0 auto;
+    position: fixed;
+    bottom: 30px;
+    transition: background-color .2s;
+}
+
+.nextButton:disabled {
+    color: #b8b8b8;
+}
+
+@media (max-width: 800px) {
+    .nextButton {
+        left: 10px;
+        width: calc(100% - 20px);
+        bottom: 10px;
+        padding: 16px 24px;
+    }
+}
+
+.nextButton:hover {
+    background-color: #270f82;
+    transition: background-color .2s;
+}

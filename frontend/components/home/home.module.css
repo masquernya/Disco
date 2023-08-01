@@ -1,0 +1,42 @@
+
+.nextButton {
+    border: none;
+    background-color: #130641;
+    color: #fff;
+    padding: 6px 16px;
+    font-weight: 600;
+    border-radius: 6px;
+    text-align: center;
+    margin: 40px auto 0 auto;
+    transition: background-color .2s;
+}
+
+.nextButtonContainer {
+    margin-top: 40px;
+}
+
+.nextButton:disabled {
+    color: #b8b8b8;
+}
+
+@media (max-width: 800px) {
+    .nextButton {
+        position: fixed;
+        left: 10px;
+        width: calc(100% - 20px);
+        bottom: 10px;
+        padding: 16px 24px;
+    }
+}
+
+.nextButton:hover {
+    background-color: #270f82;
+    transition: background-color .2s;
+    color: #fff;
+}
+
+.header {
+    font-size: 4rem;
+    font-weight: 600;
+    margin-top: 60px;
+}
