@@ -11,6 +11,7 @@ public class DiscoContext : DbContext
     public DbSet<AccountTag> accountTags { get; set; }
     public DbSet<AccountDescription> accountDescriptions { get; set; }
     public DbSet<AccountDiscord> accountDiscords { get; set; }
+    public DbSet<AccountMatrix> accountMatrix { get; set; }
     public DbSet<AccountDiscordCode> accountDiscordCodes { get; set; }
     public DbSet<AccountSession> accountSessions { get; set; }
     public DbSet<AccountRelationship> accountRelationships { get; set; }
@@ -62,6 +63,10 @@ public class DiscoContext : DbContext
         b.Entity<AccountDiscordBan>()
             .HasIndex(a => a.discordId)
             .IsUnique();
+
+        // b.Entity<AccountMatrix>()
+            // .HasIndex(a => new { a.name, a.domain })
+            // .IsUnique();
     }
 
     // The following configures EF to create a Sqlite database file in the
@@ -73,6 +78,7 @@ public class DiscoContext : DbContext
 public enum SocialMedia
 {
     Discord = 1,
+    Matrix,
 }
 
 public class Account
@@ -89,6 +95,7 @@ public class Account
 public enum AvatarSource
 {
     Discord = 1,
+    Matrix,
 }
 
 public class AccountAvatar
@@ -180,6 +187,22 @@ public class AccountDiscord
 
             return str;
         }
+    }
+}
+
+public class AccountMatrix
+{
+    public long accountMatrixId { get; set; }
+    public long accountId { get; set; }
+    public string name { get; set; }
+    public string domain { get; set; }
+    public string? avatarUrl { get; set; }
+    public DateTime createdAt { get; set; }
+    public DateTime updatedAt { get; set; }
+
+    public string GetDisplayString()
+    {
+        return "@" + name + ":" + domain;
     }
 }
 
