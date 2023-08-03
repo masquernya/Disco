@@ -1,6 +1,9 @@
+using System.Net;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Disco.Web.Data;
+using Disco.Web.Exceptions.Matrix;
 using Disco.Web.Exceptions.User;
 using Disco.Web.Models.User;
 using Isopoh.Cryptography.Argon2;
@@ -202,6 +205,10 @@ public class UserService : IUserService
     {
         var users = new List<FetchUser>();
         var ctx = new DiscoContext();
+        
+        var hasDiscord = await ctx.accountDiscords.AnyAsync(a => a.accountId == contextUserId);
+        var hasMatrix = await ctx.accountMatrix.AnyAsync(a => a.accountId == contextUserId);
+        
         var me = await ctx.accounts.FindAsync(contextUserId);
         var amIOver18 = me.age == null || me.age >= 18;
         var myTags = await ctx.accountTags.Where(a => a.accountId == contextUserId).ToListAsync();
@@ -232,11 +239,18 @@ public class UserService : IUserService
             var avatar = await ctx.accountAvatars.FirstOrDefaultAsync(a => a.accountId == id);
             var userTags = await ctx.accountTags.Where(a => a.accountId == id).ToListAsync();
             var socialMedia = new List<UserSocialMedia>();
-            if (disc != null)
+            if (disc != null && hasDiscord)
                 socialMedia.Add(new UserSocialMedia()
                 {
                     type = SocialMedia.Discord,
                     displayString = disc.DisplayString,
+                });
+            var matrix = await ctx.accountMatrix.FirstOrDefaultAsync(a => a.accountId == id);
+            if (matrix != null && hasMatrix)
+                socialMedia.Add(new UserSocialMedia()
+                {
+                    type = SocialMedia.Matrix,
+                    displayString = matrix.GetDisplayString(),
                 });
 
             var item = new FetchUser()
@@ -286,7 +300,8 @@ public class UserService : IUserService
         
         // User must have a social account attached.
         var hasDisc = await ctx.accountDiscords.AnyAsync(a => a.accountId == contextUserId);
-        if (!hasDisc)
+        var hasMatrix = await ctx.accountMatrix.AnyAsync(a => a.accountId == contextUserId);
+        if (!hasDisc && !hasMatrix)
             return new() { data = ArraySegment<FetchUser>.Empty };
         
         var usersToExclude = await ctx.accountRelationships
@@ -310,10 +325,13 @@ public class UserService : IUserService
                 if (isOver18 != amIOver18)
                     continue;
                 
-                var desc = await ctx.accountDescriptions.FirstOrDefaultAsync(a
-                    => a.accountId == id);
                 var disc = await ctx.accountDiscords.FirstOrDefaultAsync(a => a.accountId == id);
-                var avatar = await ctx.accountAvatars.FirstOrDefaultAsync(a => a.accountId == id);
+                var matrix = await ctx.accountMatrix.AnyAsync(a => a.accountId == id);
+                
+                var mutualSocialSite = (hasMatrix && matrix) || (hasDisc && disc != null);
+                if (!mutualSocialSite)
+                    continue;
+
                 var socialMedia = new List<UserSocialMedia>();
                 if (disc != null)
                     socialMedia.Add(new UserSocialMedia()
@@ -321,6 +339,16 @@ public class UserService : IUserService
                         type = SocialMedia.Discord,
                     });
                 
+                if (matrix)
+                    socialMedia.Add(new UserSocialMedia()
+                    {
+                        type = SocialMedia.Matrix,
+                    });
+
+                var desc = await ctx.accountDescriptions.FirstOrDefaultAsync(a
+                    => a.accountId == id);
+                var avatar = await ctx.accountAvatars.FirstOrDefaultAsync(a => a.accountId == id);
+
                 var item = new FetchUser()
                 {
                     socialMedia = socialMedia,
@@ -540,6 +568,114 @@ public class UserService : IUserService
         return tags;
     }
 
+    private async Task<string?> GetMatrixProfilePictureUrl(string name, string domain)
+    {
+        var url = "https://matrix.org/_matrix/client/r0/profile/" + System.Web.HttpUtility.UrlEncode("@" + name + ":" + domain);
+        
+        var parsedUrl = new Uri(url);
+        if (parsedUrl.Host != "matrix.org" || parsedUrl.Scheme != "https")
+            throw new Exception("Unsafe url");
+        
+        using var client = new HttpClient();
+        var result = await client.GetAsync(parsedUrl);
+
+        if (result.StatusCode == HttpStatusCode.NotFound)
+        {
+            // User does not exist.
+            throw new MatrixUserNotFoundException();
+        }
+        
+        if (!result.IsSuccessStatusCode)
+            throw new Exception("Failed to get profile picture");
+        
+        var body = await result.Content.ReadAsStringAsync();
+        var jsonBody = JsonSerializer.Deserialize<MatrixUserInfoResponse>(body);
+        if (string.IsNullOrWhiteSpace(jsonBody?.avatarUrl))
+            return null;
+        
+        // Returns data like "mxc://matrix.org/XTuYJiMVIgfVHcMikXQSerEL"
+        var parsed = new Uri(jsonBody.avatarUrl);
+        if (parsed.Scheme != "mxc")
+            throw new Exception("Invalid avatar url");
+        var afterScheme = parsed.Host + parsed.PathAndQuery;
+        var getImageUrl =
+            "https://matrix.org/_matrix/media/r0/thumbnail/"+afterScheme+"?width=256&height=256";
+        var parsedGetImageUrl = new Uri(getImageUrl);
+        if (parsedGetImageUrl.Host != "matrix.org" || parsedGetImageUrl.Scheme != "https")
+            throw new Exception("Unsafe url");
+        return parsedGetImageUrl.ToString();
+    }
+
+    public async Task DeleteMatrix(long accountId)
+    {
+        var ctx = new DiscoContext();
+        var toDelete = ctx.accountMatrix.Where(a => a.accountId == accountId);
+        ctx.accountMatrix.RemoveRange(toDelete);
+        
+        var avatars = ctx.accountAvatars.Where(a => a.accountId == accountId && a.source == AvatarSource.Matrix);
+        ctx.accountAvatars.RemoveRange(avatars);
+        
+        await ctx.SaveChangesAsync();
+    }
+    
+    public async Task SetMatrixAccount(long accountId, string fullUsername)
+    {
+        var separator = fullUsername.LastIndexOf(':');
+        if (separator == -1)
+            throw new InvalidMatrixUsernameException();
+        
+        var username = fullUsername.Substring(0, separator);
+        var domain = fullUsername.Substring(separator + 1);
+        
+        if (username.StartsWith('@'))
+            username = username.Substring(1);
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(domain))
+            throw new InvalidMatrixUsernameException();
+        
+        if (!domain.Contains('.') || domain.Length < 3 || domain.Length > 255)
+            throw new InvalidMatrixUsernameException();
+
+        if (username.Length is < 1 or > 64)
+            throw new InvalidMatrixUsernameException();
+        
+        var imageUrl = await GetMatrixProfilePictureUrl(username, domain);
+        var ctx = new DiscoContext();
+        
+        // We can't delete accounts like we do with discord since we don't verify matrix accounts.
+        // We can delete the current accountId's accounts though.
+        var toDelete = ctx.accountMatrix.Where(a => a.accountId == accountId);
+        ctx.accountMatrix.RemoveRange(toDelete);
+        // Add
+        ctx.accountMatrix.Add(new AccountMatrix()
+        {
+            accountId = accountId,
+            domain = domain,
+            name = username,
+            createdAt = DateTime.UtcNow,
+            updatedAt = DateTime.UtcNow,
+            avatarUrl = imageUrl,
+        });
+        // Update image, if required
+        if (!string.IsNullOrWhiteSpace(imageUrl))
+        {
+            // Delete old.
+            var avatars = ctx.accountAvatars.Where(a => a.accountId == accountId);
+            ctx.accountAvatars.RemoveRange(avatars);
+            // Insert new.
+            ctx.accountAvatars.Add(new AccountAvatar()
+            {
+                source = AvatarSource.Matrix,
+                accountId = accountId,
+                url = imageUrl,
+                createdAt = DateTime.UtcNow,
+                updatedAt = DateTime.UtcNow,
+            });
+        }
+        // Save
+        await ctx.SaveChangesAsync();
+    }
+
     public async Task AttachDiscordAccount(long accountId, long discordId, string fullDiscordName, string? imageUrl)
     {
         var parsed = AccountDiscord.Parse(fullDiscordName);
@@ -595,6 +731,13 @@ public class UserService : IUserService
         await ctx.SaveChangesAsync();
     }
 
+    public async Task<AccountMatrix?> GetMatrixForAccount(long accountId)
+    {
+        var ctx = new DiscoContext();
+        var account = await ctx.accountMatrix.FirstOrDefaultAsync(a => a.accountId == accountId);
+        return account;
+    }
+    
     public async Task<AccountDiscord?> GetDiscordForAccount(long accountId)
     {
         var ctx = new DiscoContext();
