@@ -131,7 +131,7 @@ public class UsersController : ControllerBase
         var discord = await _userService.GetDiscordForAccount(sess.accountId);
         return discord;
     }
-    
+
     [HttpGet("{accountId}/Discord")]
     public async Task<AccountDiscord?> GetOtherDiscord(long accountId)
     {
@@ -139,6 +139,11 @@ public class UsersController : ControllerBase
         var state = await _userService.IsRelationshipMutual(sess.accountId, accountId);
         if (!state)
             throw new UnauthorizedException();
+        
+        var currentUserHasDiscord = await _userService.GetDiscordForAccount(sess.accountId);
+        if (currentUserHasDiscord == null)
+            return null;
+        
         var discord = await _userService.GetDiscordForAccount(accountId);
         return discord;
     }
@@ -150,6 +155,43 @@ public class UsersController : ControllerBase
         await _userService.DeleteDiscord(sess.accountId);
     }
     
+    
+    [HttpGet("Matrix")]
+    public async Task<AccountMatrix?> GetMyMatrix()
+    {
+        var sess = await GetSession();
+        var matrix = await _userService.GetMatrixForAccount(sess.accountId);
+        return matrix;
+    }
+
+    [HttpPost("Matrix")]
+    public async Task SetMatrix([Required, FromBody] SetMatrixAccountResponse request)
+    {
+        var sess = await GetSession();
+        await _userService.SetMatrixAccount(sess.accountId, request.username);
+    }
+    
+    [HttpDelete("Matrix")]
+    public async Task DeleteMyMatrix()
+    {
+        var sess = await GetSession();
+        await _userService.DeleteMatrix(sess.accountId);
+    }
+    
+    [HttpGet("{accountId}/Matrix")]
+    public async Task<AccountMatrix?> GetOtherMatrix(long accountId)
+    {
+        var sess = await GetSession();
+        var state = await _userService.IsRelationshipMutual(sess.accountId, accountId);
+        if (!state)
+            throw new UnauthorizedException();
+        
+        var currentUserHasMatrix = await _userService.GetMatrixForAccount(sess.accountId);
+        if (currentUserHasMatrix == null)
+            return null;
+        
+        return await _userService.GetMatrixForAccount(accountId);
+    }
 
     [HttpGet("Avatar")]
     public async Task<AccountAvatar?> GetMyAvatar()
