@@ -3,8 +3,25 @@ import Tags from "./tags";
 import Accounts from "./accounts";
 import PersonalInfo from "./personalInfo";
 import Buttons from "./buttons";
+
+const getImageUrl = imageUrl => {
+  if (!imageUrl)
+    return '/user_placeholder.png';
+
+  if (imageUrl.startsWith('/'))
+    return imageUrl;
+
+  const parsedUrl = new URL(imageUrl);
+  if (parsedUrl.hostname === 'matrix.org')
+    return imageUrl;
+
+  return imageUrl + '?size=256'; // for discord
+}
+
 export default function UserListCard(props) {
-  const imageUrl = (props.user && props.user.avatar && props.user.avatar.imageUrl + "?size=256") || '/user_placeholder.png';
+  const rawImageUrl = props.user && props.user.avatar && props.user.avatar.imageUrl;
+  const imageUrl = getImageUrl(rawImageUrl);
+
   return <div className={styles.card}>
     <div className={styles.cardPadding} />
     <div className={styles.cardHeader}>
