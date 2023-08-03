@@ -12,6 +12,7 @@ import Discord from "./discord";
 import Avatar from "./avatar";
 import Password from "./password";
 import DeleteAccount from "./deleteAccount";
+import Matrix from "./matrix";
 
 export default function Me(props) {
 
@@ -21,6 +22,7 @@ export default function Me(props) {
 
   const [avatar, setAvatar] = useState(null);
   const [discord, setDiscord] = useState(null);
+  const [matrix, setMatrix] = useState(null);
   useEffect(() => {
     api.request('/api/user/Avatar').then(data => {
       setAvatar(data.body);
@@ -28,7 +30,25 @@ export default function Me(props) {
     api.request('/api/user/Discord').then(data => {
       setDiscord(data.body);
     })
+    api.request('/api/user/Matrix').then(data => {
+      setMatrix(data.body);
+    })
   }, [user]);
+
+  const socialMedia = [];
+  if (discord) {
+    socialMedia.push({
+      type: 'Discord',
+      displayString: discord.displayString,
+    });
+  }
+
+  if (matrix) {
+    socialMedia.push({
+      type: 'Matrix',
+      displayString: '@' + matrix.name + ':' + matrix.domain,
+    })
+  }
 
   return <div className='container min-vh-100'>
     <div className='row mt-4'>
@@ -41,6 +61,7 @@ export default function Me(props) {
         <Pronouns />
         <Tags />
         <Discord discord={discord}  setDiscord={setDiscord} />
+        <Matrix matrix={matrix} setMatrix={setMatrix} />
         {discord ? <Avatar avatar={avatar} setAvatar={setAvatar} /> : null}
         <Password />
         <DeleteAccount />
@@ -54,12 +75,7 @@ export default function Me(props) {
           pronouns: user.pronouns,
           age: user.age,
           gender: user.gender,
-          socialMedia: discord ? [
-            {
-              type: 'Discord',
-              displayString: discord.displayString,
-            }
-          ] : [],
+          socialMedia: socialMedia,
           tags: user.tags.map(v => {
             return {
               displayTag: v.tag,
