@@ -13,6 +13,7 @@ export default function Users(props) {
   const [mutualState, setMutualState] = useState(null);
   const [hasDiscord, setHasDiscord] = useState(null);
   const [discordUrl,setDiscordUrl] = useState(null);
+  const [hasMatrix, setHasMatrix] = useState(false);
   const refreshUsers = () => {
     api.request('/api/user/FetchPotentialFriendsV1').then(data => {
       setUsers(data.body.data.filter(v => !usersToExclude.current.includes(v.accountId)));
@@ -36,6 +37,9 @@ export default function Users(props) {
   }
   useEffect(() => {
     refreshUsers();
+    api.request('/api/user/Matrix').then(d => {
+      setHasMatrix(!!d.body);
+    })
     api.request('/api/user/Discord').then(d => {
       setHasDiscord(!!d.body);
       if (!d.body) {
@@ -54,6 +58,8 @@ export default function Users(props) {
 
   const hasTags = !getUser() ? null : (getUser().data && getUser().data.tags.length > 0);
 
+  const hasAnySocialMedia = mutualState && (mutualState.discord || mutualState.matrix);
+
   return <div className='container min-vh-100'>
     {
       mutualState ? <div className={s.mutualModal}>
@@ -62,9 +68,15 @@ export default function Users(props) {
             <div className='col-12 col-lg-6 mx-auto'>
               <div className={s.mutualCard}>
                 <h3 className={s.mutualTitle}>It's Mutual!</h3>
-                <p>You and "{mutualState.displayName}" both liked each other. You can send a friend request to their discord account below:</p>
+                <p>You and "{mutualState.displayName}" both liked each other. You can send a friend request to their social media accounts below:</p>
                 {
-                  mutualState.discord ? <p className={s.discord}>{mutualState.discord}</p> : <p>It looks like @{mutualState.username} removed their Discord account after liking you. You can check their account again later in the "Liked" tab to see if they add back their Discord account.</p>
+                  !hasAnySocialMedia ? <p>It looks like @{mutualState.username} removed their social media accounts after liking you. You can check their account again later in the "Matches" tab to see if they add back any accounts.</p> : null
+                }
+                {
+                  mutualState.discord ? <p className={s.discord}>Discord: {mutualState.discord}</p> : null
+                }
+                {
+                  mutualState.matrix ? <p className={s.discord}>Matrix: {mutualState.matrix}</p> : null
                 }
                 <button className='btn btn-outline-danger mt-4' onClick={() => {
                   setMutualState(null);
@@ -78,10 +90,10 @@ export default function Users(props) {
     <div className='row mt-4'>
       <div className='col-12'>
         {
-          (hasTags === false) ? <div className={s.alert}>
+          (!hasTags) ? <div className={s.alert}>
             <span className={s.alertHeader}>{stillNeedSetupHeader}</span> Add at least one tag in <Link href={'/me'}>Settings</Link>.
-          </div> : (hasDiscord === false && discordUrl) ? <div className={s.alert}>
-            <span className={s.alertHeader}>{stillNeedSetupHeader}</span> Click <Link href={discordUrl}>here</Link> to attach your discord account.
+          </div> : (!hasDiscord && discordUrl && !hasMatrix) ? <div className={s.alert}>
+            <span className={s.alertHeader}>{stillNeedSetupHeader}</span> Click <Link href={discordUrl}>here</Link> to attach your discord account, or enter your Matrix username in <Link href={'/me'}>Settings</Link>.
           </div> : null
         }
         <h3 className='fw-bold text-uppercase'>Users</h3>
@@ -110,12 +122,17 @@ export default function Users(props) {
                      console.log('response',d.body);
                     if (d.body.isMutualLike) {
                       console.log('is mutual');
-                      api.request('/api/user/'+v.accountId+'/Discord').then(disc => {
+                      Promise.all([
+                        api.request('/api/user/'+v.accountId+'/Discord'),
+                        api.request('/api/user/'+v.accountId+'/Matrix'),
+                      ]).then(data => {
+                        const [disc, matrix] = data;
                         setMutualState({
                           ...v,
-                          discord: disc.body.displayString,
-                        });
-                      })
+                          discord: disc.body ? disc.body.displayString : null,
+                          matrix: matrix.body ? ('@' + matrix.body.name + ':' + matrix.body.domain) : null,
+                        })
+                      });
                     }
                    })
                  }} decline={() => {
