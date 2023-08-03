@@ -43,8 +43,11 @@ public interface IUserService
     Task<string> CreateDiscordToken(long accountId);
     Task SetDiscordTokenUrl(string code, string newUrl);
     Task<DiscordStateResponse?> RedeemDiscordToken(string code, long accountId);
+    Task SetMatrixAccount(long accountId, string fullUsername);
+    Task DeleteMatrix(long accountId);
     Task AttachDiscordAccount(long accountId, long discordId, string fullDiscordName, string? imageUrl);
     Task<AccountDiscord?> GetDiscordForAccount(long accountId);
+    Task<AccountMatrix?> GetMatrixForAccount(long accountId);
     Task<AccountAvatar?> GetAvatarForAccount(long accountId);
     Task DeleteDiscord(long accountId);
     Task<bool> IsRelationshipMutual(long accountId, long targetId);
