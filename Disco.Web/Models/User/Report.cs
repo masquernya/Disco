@@ -14,3 +14,8 @@ public class BanAccountRequest
     public long accountId { get; set; }
     public string reason { get; set; }
 }
+
+public class ToggleImageStatusRequest
+{
+    public long imageId { get; set; }
+}
