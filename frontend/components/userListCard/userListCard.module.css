@@ -1,10 +1,13 @@
 .card {
-    /*border: 1px solid #ececec;*/
+    border: 2px solid #130641;
     background: #fbfbfb;
     /*padding: 20px;*/
+    /*background: #130641;*/
+    color: #130641;
     border-radius: 14px;
     margin-top: 20px;
     animation: ImageFadeIn .5s ease-out;
+    overflow: hidden;
 }
 
 
@@ -34,7 +37,7 @@
 }
 
 .image {
-    border: 2px solid #130641;
+    /*border: 2px solid #130641;*/
     display: block;
     height: 128px;
     width: 128px;
@@ -56,6 +59,7 @@
     height: 20px;
     display: block;
     width: 100%;
+    background-color: #130641;
 }
 
 .displayName {
@@ -78,7 +82,7 @@
 }
 
 .description {
-
+    white-space: pre-wrap;
 }
 
 .noTagsAvailable {
@@ -112,6 +116,10 @@
     margin: .15rem .15rem;
 }
 
+.tagMatch {
+    background-color: #270f82;
+}
+
 .accountsContainer {
 }
 
@@ -124,16 +132,15 @@
 
 .accountEntry:hover > .accountName {
     background-color: #270f82;
-    border: 1px solid #270f82;
+    /*border: 2px solid #270f82;*/
     transition: background-color .3s, border .3s;
 }
 
 .accountEntry:hover > .accountDisplay {
     color: #270f82;
-    border: 1px solid #270f82;
+    /*border: 2px solid #270f82;*/
     transition: background-color .3s, border .3s;
 }
-
 
 .accountName {
     background-color: #130641;
@@ -148,17 +155,25 @@
 
 .accountDisplay {
     color: #130641;
-    border: 1px solid #130641;
-    padding:0 10px;
+    border: 2px solid #130641;
+    padding: 0 10px;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
 }
 
 .personalContainer {
     text-align: left;
-    margin-bottom: 1rem;
-    margin-top: .4rem;
+    /*margin-bottom: 1rem;*/
+    margin-top: 16px;
     font-size: .9rem;
+}
+
+.age {
+
+}
+
+.genderPronounSep {
+    margin: 0 4px;
 }
 
 .buttonsContainer {
@@ -208,6 +223,9 @@
     padding-left: 20px;
     padding-right: 20px;
     padding-bottom: 20px;
+    background-color: #130641;
+    color: #fff;
+    margin-bottom: 12px;
 }
 .cardHeaderItem {
 
