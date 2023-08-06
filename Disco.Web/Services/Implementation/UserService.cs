@@ -1128,4 +1128,61 @@ public class UserService : IUserService
         var accounts = await ctx.accounts.ToListAsync();
         return accounts;
     }
+
+    public async Task<IEnumerable<TopTag>> GetTopTags()
+    {
+        // TODO: cache
+        var ctx = new DiscoContext();
+        var normalizedTags = await ctx.accountTags.GroupBy(a => a.tag).OrderByDescending(a => a.Count()).Take(100).Select(a => a.Key).ToListAsync();
+        // convert to admin tags
+        var adminList = new List<TopTag>();
+        foreach (var tag in normalizedTags)
+        {
+            var adminData = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == tag);
+            if (adminData == null)
+                continue; // not approved
+            adminList.Add(adminData);
+            if (adminList.Count == 10)
+                break;
+        }
+        return adminList;
+    }
+
+    public async Task<IEnumerable<TopTagWithCount>> GetTopTagsUnfiltered()
+    {
+        var ctx = new DiscoContext();
+        var normalizedTags = await ctx.accountTags.GroupBy(a => a.tag).OrderByDescending(a => a.Count()).Take(100).Select(a => new TopTagWithCount()
+        {
+            tag = a.Key,
+            count = a.Count()
+        }).ToListAsync();
+
+        return normalizedTags;
+    }
+
+    public async Task ApproveTopTag(string tag, string displayTag)
+    {
+        var ctx = new DiscoContext();
+        // add to toptags
+        var existing = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == tag);
+        if (existing != null)
+            return;
+
+        await ctx.topTags.AddAsync(new TopTag()
+        {
+            displayTag = displayTag,
+            tag = tag,
+        });
+        await ctx.SaveChangesAsync();
+    }
+
+    public async Task DeleteTopTag(string tag)
+    {
+        var ctx = new DiscoContext();
+        var existing = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == tag);
+        if (existing == null)
+            return;
+        ctx.Remove(existing);
+        await ctx.SaveChangesAsync();
+    }
 }
