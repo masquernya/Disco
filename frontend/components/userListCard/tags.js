@@ -7,7 +7,10 @@ export default function Tags({tags}) {
   return <div className={s.tagContainer}>
     {
       tags.sort((a, b) => a.displayTag.localeCompare(b.displayTag)).map(v => {
-        return <div key={v.displayTag} className={s.tag}>{v.displayTag}</div>
+        let cssClass = s.tag;
+        if (v.isMatch)
+          cssClass += ' ' + s.tagMatch;
+        return <div key={v.displayTag} className={cssClass}>{v.displayTag}</div>
       })
     }
   </div>
