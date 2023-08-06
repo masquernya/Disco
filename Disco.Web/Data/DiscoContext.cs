@@ -19,6 +19,7 @@ public class DiscoContext : DbContext
     public DbSet<AccountReport> accountReports { get; set; }
     public DbSet<AccountBan> accountBans { get; set; }
     public DbSet<AccountDiscordBan> accountDiscordBans { get; set; }
+    public DbSet<UserUploadedImage> images { get; set; }
 
     private string dbPath { get; set; }
     
@@ -64,9 +65,9 @@ public class DiscoContext : DbContext
             .HasIndex(a => a.discordId)
             .IsUnique();
 
-        // b.Entity<AccountMatrix>()
-            // .HasIndex(a => new { a.name, a.domain })
-            // .IsUnique();
+        b.Entity<UserUploadedImage>()
+            .HasIndex(a => a.sha256Hash)
+            .IsUnique();
     }
 
     // The following configures EF to create a Sqlite database file in the
@@ -96,13 +97,15 @@ public enum AvatarSource
 {
     Discord = 1,
     Matrix,
+    UserUploadedImage,
 }
 
 public class AccountAvatar
 {
     public long accountAvatarId { get; set; }
     public long accountId { get; set; }
-    public string url { get; set; }
+    public string? url { get; set; }
+    public long? userUploadedImageId { get; set; }
     public AvatarSource source { get; set; }
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
@@ -304,4 +307,51 @@ public class AccountDiscordBan
     public long? bannedAccountId { get; set; }
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
+}
+
+public enum ImageStatus
+{
+    AwaitingApproval = 1,
+    Approved,
+    Rejected,
+}
+
+public enum ImageFormat
+{
+    FormatWebP = 1,
+    FormatPng,
+}
+
+public class UserUploadedImage
+{
+    public static string baseUrl { get; set; }
+    public long userUploadedImageId { get; set; }
+    public long accountId { get; set; }
+    public string sha256Hash { get; set; }
+    public string originalSha256Hash { get; set; }
+    public ImageStatus status { get; set; }
+    public ImageFormat format { get; set; }
+    public int sizeX { get; set; }
+    public int sizeY { get; set; }
+    public long fileSize { get; set; }
+
+    public string extension
+    {
+        get
+        {
+            if (format is not ImageFormat.FormatWebP)
+                throw new NotImplementedException();
+            return "webp";
+        }
+    }
+    public string url
+    {
+        get
+        {
+            return baseUrl + "/user-content/images/" + sha256Hash + "." + extension;
+        }
+    }
+    public DateTime createdAt { get; set; }
+    public DateTime updatedAt { get; set; }
+    
 }
