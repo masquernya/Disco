@@ -272,7 +272,13 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
        return await _userService.UpdateRelationship(sess.accountId, request.targetAccountId, request.status);
     }
-    
+
+    [HttpGet("TopTags")]
+    public async Task<IEnumerable<string>> GetTopTags()
+    {
+        return (await _userService.GetTopTags()).Select(c => c.displayTag);
+    }
+
     [HttpGet("FetchPotentialFriendsV1")]
     public async Task<FetchUsersResponse> FetchPotentialFriends()
     {
@@ -466,6 +472,34 @@ public class UsersController : ControllerBase
             throw new UnauthorizedException();
         await _userService.SetImageStatus(request.imageId, ImageStatus.Rejected);
         await _userService.DeleteImage(request.imageId);
+    }
+
+    [HttpGet("FetchUnfilteredTopTags")]
+    public async Task<IEnumerable<TopTagWithCount>> FetchUnfilteredTopTags()
+    {
+        var sess = await GetSession();
+        if (!Config.IsAdmin(sess.accountId))
+            throw new UnauthorizedException();
+
+        return await _userService.GetTopTagsUnfiltered();
+    }
+    
+    [HttpPost("ApproveTopTag")]
+    public async Task ApproveTopTag([Required, FromBody] ApproveTopTagRequest request)
+    {
+        var sess = await GetSession();
+        if (!Config.IsAdmin(sess.accountId))
+            throw new UnauthorizedException();
+        await _userService.ApproveTopTag(request.tag, request.displayTag);
+    }
+    
+    [HttpPost("DeleteTopTag")]
+    public async Task DeleteTopTag([Required, FromBody] DeleteTopTagRequest request)
+    {
+        var sess = await GetSession();
+        if (!Config.IsAdmin(sess.accountId))
+            throw new UnauthorizedException();
+        await _userService.DeleteTopTag(request.tag);
     }
 
     [HttpPost("DeleteAccount")]
