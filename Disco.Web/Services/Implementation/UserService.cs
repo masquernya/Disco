@@ -1129,22 +1129,28 @@ public class UserService : IUserService
         return accounts;
     }
 
-    public async Task<IEnumerable<TopTag>> GetTopTags()
+    public async Task<IEnumerable<TopTagWithCount>> GetTopTags()
     {
         // TODO: cache
         var ctx = new DiscoContext();
-        var normalizedTags = await ctx.accountTags.GroupBy(a => a.tag).OrderByDescending(a => a.Count()).Take(100).Select(a => a.Key).ToListAsync();
-        // convert to admin tags
-        var adminList = new List<TopTag>();
-        foreach (var tag in normalizedTags)
+        var normalizedTags = await ctx.accountTags.GroupBy(a => a.tag).OrderByDescending(a => a.Count()).Select(c => new TopTagWithCount()
         {
-            var adminData = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == tag);
+            tag = c.Key,
+            count = c.Count(),
+        }).Take(100).ToListAsync();
+        // convert to admin tags
+        var adminList = new List<TopTagWithCount>();
+        foreach (var data in normalizedTags)
+        {
+            var adminData = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == data.tag);
             if (adminData == null)
                 continue; // not approved
-            adminList.Add(adminData);
-            if (adminList.Count == 10)
+            data.displayTag = adminData.displayTag;
+            adminList.Add(data);
+            if (adminList.Count == 25)
                 break;
         }
+        
         return adminList;
     }
 

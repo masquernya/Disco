@@ -64,7 +64,7 @@ public interface IUserService
     Task<IEnumerable<UserUploadedImage>> GetImagesAwaitingReview();
     Task SetImageStatus(long userUploadedImageId, ImageStatus status);
     Task DeleteImage(long userUploadedImageId);
-    Task<IEnumerable<TopTag>> GetTopTags();
+    Task<IEnumerable<TopTagWithCount>> GetTopTags();
     Task<IEnumerable<TopTagWithCount>> GetTopTagsUnfiltered();
     Task ApproveTopTag(string tag, string displayTag);
     Task DeleteTopTag(string tag);
