@@ -1,10 +1,13 @@
 using System.Text.Json.Serialization;
 using Disco.Web;
+using Disco.Web.Data;
 using Disco.Web.Exceptions;
 using Disco.Web.Middleware;
 using Disco.Web.Models;
 using Disco.Web.Services;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Primitives;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5194");
@@ -13,7 +16,7 @@ Config.frontendUrl = builder.Configuration.GetValue<string>("FrontedUrl");
 Config.adminUserId = builder.Configuration.GetValue<long>("AdminUserId");
 Config.hcaptchaPrivate = builder.Configuration.GetValue<string>("HCaptcha:Private");
 Config.hcatpchaPublic = builder.Configuration.GetValue<string>("HCaptcha:Public");
-var  FrontendCorsPolicy = "_frontendCorsAllowSpecificOrigins";
+var FrontendCorsPolicy = "_frontendCorsAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: FrontendCorsPolicy,
@@ -33,11 +36,15 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+var serverBaseUrl = builder.Configuration.GetValue<string>("BackendBaseUrl");
 var clientId = builder.Configuration.GetValue<string>("DiscordOauth:ClientId");
 var clientSecret = builder.Configuration.GetValue<string>("DiscordOauth:Secret");
 var redirect = builder.Configuration.GetValue<string>("DiscordOauth:Redirect");
+var fullImagePath = builder.Configuration.GetValue<string>("FullImagePath");
+UserUploadedImage.baseUrl = serverBaseUrl;
 // DI
 var discord = new DiscordService(clientId, clientSecret, redirect);
+UserService.Configure(fullImagePath);
 builder.Services.AddTransient<IUserService>(_ => new UserService());
 builder.Services.AddSingleton<IDiscordService>(discord);
 builder.Services.AddSingleton<IRateLimitService>(_ => new InMemoryRateLimitService());
@@ -92,6 +99,18 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(fullImagePath),
+    RequestPath = "/user-content/images",
+    ServeUnknownFileTypes = false,
+    DefaultContentType = "image/webp",
+    OnPrepareResponse = context =>
+    {
+        if (context.Context.Response.StatusCode == 200)
+            context.Context.Response.Headers.CacheControl = new StringValues("public, max-age=7889238, immutable");
+    }
+});
 app.UseAuthorization();
 
 app.MapControllers();
