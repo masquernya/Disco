@@ -14,9 +14,12 @@ import Password from "./password";
 import DeleteAccount from "./deleteAccount";
 import Matrix from "./matrix";
 import s from './me.module.css';
+import {useRouter} from "next/router";
+import modal from '../../styles/Modal.module.css';
 
 export default function Me(props) {
-
+  const router = useRouter();
+  const [firstLinkVisible, setFirstLinkVisible] = useState(false);
   const [avatar, setAvatar] = useState(null);
   const [discord, setDiscord] = useState(null);
   const [matrix, setMatrix] = useState(null);
@@ -32,6 +35,12 @@ export default function Me(props) {
       setMatrix(data.body);
     })
   }, []);
+
+  useEffect(() => {
+    if (router.query.link) {
+      setFirstLinkVisible(true);
+    }
+  }, [router.query]);
 
   const socialMedia = [];
   if (discord) {
@@ -54,6 +63,19 @@ export default function Me(props) {
   const user = getUser().data;
 
   return <div className='container min-vh-100'>
+    {
+      (firstLinkVisible && (!discord && !matrix)) ? <div className={modal.modal}>
+        <div className={modal.content}>
+          <h3 className='fw-bold'>Account Link</h3>
+          <p>In order to start getting matches, you'll have to link an account from a supported social media site. This is shown to other users if you both "Like" each other.</p>
+          <Discord discord={discord}  setDiscord={setDiscord} matrix={matrix} setAvatar={setAvatar} />
+          <Matrix matrix={matrix} setMatrix={setMatrix} discord={discord} setAvatar={setAvatar} />
+          <button className='btn btn-outline-secondary mt-0' onClick={() => {
+            setFirstLinkVisible(false);
+          }}>Dismiss</button>
+        </div>
+      </div> : null
+    }
     <div className='row mt-4'>
       <div className='col-12 d-block d-lg-none'>
         <button className={s.saveButton + ' mb-4'} onClick={() => {
