@@ -2,7 +2,7 @@ import s from "./me.module.css";
 import api from "../../lib/api";
 import {useState} from "react";
 
-export default function Discord({discord, setDiscord}) {
+export default function Discord({discord, setDiscord, matrix, setAvatar}) {
   const [feedback, setFeedback] = useState(null);
 
   return <div className={s.meSection}>
@@ -17,13 +17,14 @@ export default function Discord({discord, setDiscord}) {
           api.request('/api/user/Discord', {
             method: 'DELETE',
           }).then(() => {
-            window.location.reload();
+            setDiscord(null);
+            setAvatar(null);
           }).catch(e => {
             setFeedback(e.message);
           })
         }}>Unlink Account</button>
-        <p className='fst-italic mt-4'>Unlinking your account will restrict access to DiscoFriends until you link another discord account.</p>
-      </div> : <div>
+        {!matrix ? <p className='fst-italic mt-4'>Unlinking your account will restrict access to DiscoFriends until you link a Discord or Matrix account.</p> : null}
+          </div> : <div>
         <button className={s.saveButton} onClick={() => {
           api.request('/api/user/DiscordLinkUrl', {
             method: 'POST',
