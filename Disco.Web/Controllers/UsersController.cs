@@ -274,9 +274,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("TopTags")]
-    public async Task<IEnumerable<string>> GetTopTags()
+    public async Task<IEnumerable<TopTagWithCount>> GetTopTags()
     {
-        return (await _userService.GetTopTags()).Select(c => c.displayTag);
+        return (await _userService.GetTopTags());
     }
 
     [HttpGet("FetchPotentialFriendsV1")]
