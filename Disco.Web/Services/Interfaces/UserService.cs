@@ -61,4 +61,7 @@ public interface IUserService
     Task UnbanAccount(long accountId);
     Task<IEnumerable<Account>> FetchAllUsers();
     Task DeleteAccount(long accountId);
+    Task<IEnumerable<UserUploadedImage>> GetImagesAwaitingReview();
+    Task SetImageStatus(long userUploadedImageId, ImageStatus status);
+    Task DeleteImage(long userUploadedImageId);
 }
