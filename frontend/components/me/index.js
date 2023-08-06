@@ -16,10 +16,6 @@ import Matrix from "./matrix";
 
 export default function Me(props) {
 
-  if (!getUser() || !getUser().data)
-    return null;
-  const user = getUser().data;
-
   const [avatar, setAvatar] = useState(null);
   const [discord, setDiscord] = useState(null);
   const [matrix, setMatrix] = useState(null);
@@ -33,7 +29,7 @@ export default function Me(props) {
     api.request('/api/user/Matrix').then(data => {
       setMatrix(data.body);
     })
-  }, [user]);
+  }, []);
 
   const socialMedia = [];
   if (discord) {
@@ -50,6 +46,11 @@ export default function Me(props) {
     })
   }
 
+  if (!getUser() || !getUser().data)
+    return null;
+
+  const user = getUser().data;
+
   return <div className='container min-vh-100'>
     <div className='row mt-4'>
       <div className='col-12 col-lg-6 mx-auto'>
@@ -60,13 +61,13 @@ export default function Me(props) {
         <Gender />
         <Pronouns />
         <Tags />
-        <Discord discord={discord}  setDiscord={setDiscord} />
-        <Matrix matrix={matrix} setMatrix={setMatrix} />
-        {discord ? <Avatar avatar={avatar} setAvatar={setAvatar} /> : null}
+        <Discord discord={discord}  setDiscord={setDiscord} matrix={matrix} setAvatar={setAvatar} />
+        <Matrix matrix={matrix} setMatrix={setMatrix} discord={discord} setAvatar={setAvatar} />
+        {(discord || matrix) ? <Avatar avatar={avatar} setAvatar={setAvatar} discord={discord} matrix={matrix} /> : null}
         <Password />
         <DeleteAccount />
       </div>
-      <div className='col-12 col-lg-6 d-none d-lg-block'>
+      <div className='col-12 col-lg-6'>
         <h3 className='fw-bold'>Preview</h3>
         <UserListCard user={{
           username: user.username,
