@@ -40,6 +40,7 @@ export default function Matches() {
     <div className='row mt-4 mb-4'>
       <div className='col-12'>
         <h3 className='text-uppercase fw-bold'>Matches</h3>
+        <p className=''>People you liked who liked you back.</p>
       </div>
       {
         matches ? matches.map(v => {

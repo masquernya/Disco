@@ -108,6 +108,7 @@ export default function Users(props) {
           </>
         }
         <h3 className='fw-bold text-uppercase'>Users</h3>
+        <p>Discover new people you haven't interacted with.</p>
         {
           (users === null && localUserHasAnySocial && hasTags) ? <div className='justify-content-center d-flex'><div className='spinner-border' /></div> : null
         }
