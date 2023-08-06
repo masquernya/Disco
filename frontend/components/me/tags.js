@@ -1,9 +1,10 @@
 import s from "./me.module.css";
 import {getUser, setUser} from "../../lib/globalState";
-import {useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import api from "../../lib/api";
 
 export default function Tags(props) {
+  const [topTags, setTopTags] = useState(null);
   const user = getUser();
   const [tags, setTags] = [
     user.data.tags,
@@ -43,9 +44,22 @@ export default function Tags(props) {
     })
   }
 
+  useEffect(() => {
+    if (!topTags) {
+      api.request('/api/User/TopTags').then(data => {
+        setTopTags(data.body);
+      })
+    }
+  }, [topTags]);
+
   return <div className={s.meSection}>
     <h4 className={s.subtitle + ' text-uppercase'}>Tags</h4>
     <p className={s.subtitleHelp}>Click on a tag to delete it.</p>
+    <p className='fst-italic small'>Popular Tags: {
+      topTags ? topTags.map(v => {
+        return <span key={v.tag}>{v.displayTag} ({v.count}), </span>
+      }) : <span className='spinner-border text-dark spinner-border-sm' />
+    }</p>
     <div className={s.tagContainer}>
       {
         tags.map(v => {
