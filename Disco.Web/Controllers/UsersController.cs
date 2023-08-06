@@ -167,6 +167,7 @@ public class UsersController : ControllerBase
     [HttpPost("Matrix")]
     public async Task SetMatrix([Required, FromBody] SetMatrixAccountResponse request)
     {
+        await RateLimitIpOnly(60);
         var sess = await GetSession();
         await _userService.SetMatrixAccount(sess.accountId, request.username);
     }
