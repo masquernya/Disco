@@ -20,6 +20,7 @@ public class DiscoContext : DbContext
     public DbSet<AccountBan> accountBans { get; set; }
     public DbSet<AccountDiscordBan> accountDiscordBans { get; set; }
     public DbSet<UserUploadedImage> images { get; set; }
+    public DbSet<TopTag> topTags { get; set; }
 
     private string dbPath { get; set; }
     
@@ -67,6 +68,10 @@ public class DiscoContext : DbContext
 
         b.Entity<UserUploadedImage>()
             .HasIndex(a => a.sha256Hash)
+            .IsUnique();
+
+        b.Entity<TopTag>()
+            .HasIndex(a => a.tag)
             .IsUnique();
     }
 
@@ -354,4 +359,11 @@ public class UserUploadedImage
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
     
+}
+
+public class TopTag
+{
+    public long topTagId { get; set; }
+    public string tag { get; set; }
+    public string displayTag { get; set; }
 }
