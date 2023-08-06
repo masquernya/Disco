@@ -22,7 +22,7 @@ export default function UserListCard(props) {
   const rawImageUrl = props.user && props.user.avatar && props.user.avatar.imageUrl;
   const imageUrl = getImageUrl(rawImageUrl);
 
-  return <div className={styles.card}>
+  return <div className={styles.card + ' h-100'}>
     <div className={styles.cardPadding} />
     <div className={styles.cardHeader}>
       <div className={styles.cardHeaderItem}>
