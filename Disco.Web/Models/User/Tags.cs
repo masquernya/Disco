@@ -13,6 +13,7 @@ public class RemoveTagRequest
 public class TopTagWithCount
 {
     public string tag { get; set; }
+    public string displayTag { get; set; }
     public long count { get; set; }
 }
 
