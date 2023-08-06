@@ -13,12 +13,14 @@ import Avatar from "./avatar";
 import Password from "./password";
 import DeleteAccount from "./deleteAccount";
 import Matrix from "./matrix";
+import s from './me.module.css';
 
 export default function Me(props) {
 
   const [avatar, setAvatar] = useState(null);
   const [discord, setDiscord] = useState(null);
   const [matrix, setMatrix] = useState(null);
+  const [showPreview, setShowPreview] = useState(false); // for mobile
   useEffect(() => {
     api.request('/api/user/Avatar').then(data => {
       setAvatar(data.body);
@@ -53,7 +55,12 @@ export default function Me(props) {
 
   return <div className='container min-vh-100'>
     <div className='row mt-4'>
-      <div className='col-12 col-lg-6 mx-auto'>
+      <div className='col-12 d-block d-lg-none'>
+        <button className={s.saveButton + ' mb-4'} onClick={() => {
+          setShowPreview(!showPreview);
+        }}>{showPreview ? 'Hide Preview' : 'Show Preview'}</button>
+      </div>
+      <div className={'col-12 col-lg-6 mx-auto ' + (showPreview ? 'd-none' : 'd-block')}>
         <h3 className='fw-bold'>{'@'+getUser().data.username}</h3>
         <DisplayName />
         <Description />
@@ -67,7 +74,7 @@ export default function Me(props) {
         <Password />
         <DeleteAccount />
       </div>
-      <div className='col-12 col-lg-6'>
+      <div className={'col-12 col-lg-6 ' + (showPreview ? '' : 'd-none d-lg-block')}>
         <h3 className='fw-bold'>Preview</h3>
         <UserListCard user={{
           username: user.username,
