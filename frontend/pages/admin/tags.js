@@ -94,10 +94,11 @@ export default function Tags() {
             </table>
           </div>
           <div className='col-12 col-lg-6'>
-            <h3 className='fw-bold'>Top Approved Tags</h3>
+            <p className='fw-bold'>Top Approved Tags</p>
             <table className='table'>
               <thead>
               <tr>
+                <th>DTag</th>
                 <th>Tag</th>
                 <th>Count</th>
                 <th>Actions</th>
@@ -107,14 +108,15 @@ export default function Tags() {
               {
                 filteredTags ? filteredTags.map(v => {
                   return <tr key={v.tag}>
-                    <td>{v}</td>
-                    <td>-</td>
+                    <td>{v.displayTag}</td>
+                    <td>{v.tag}</td>
+                    <td>{v.count}</td>
                     <td>
                       <button className='btn btn-danger' onClick={() => {
                         api.request('/api/User/DeleteTopTag', {
                           method: 'POST',
                           body: {
-                            tag: v,
+                            tag: v.tag,
                           }
                         }).then(() => {
                           setFilteredTags(filteredTags.filter(x => x !== v));
