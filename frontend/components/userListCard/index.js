@@ -44,7 +44,7 @@ export default function UserListCard(props) {
       <p className={styles.heading + ' text-uppercase'}>Tags</p>
       <Tags tags={props.user.tags} />
 
-      <p className={styles.heading + ' text-uppercase mt-3'}>Accounts</p>
+      <p className={styles.heading + ' text-uppercase mt-3 mb-1'}>Accounts</p>
       <Accounts socialMedia={props.user.socialMedia} />
 
       {props.hideButtons ? null : <Buttons accountId={props.user.accountId} accept={props.accept} decline={props.decline} />}
