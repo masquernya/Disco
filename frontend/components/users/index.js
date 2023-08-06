@@ -14,6 +14,10 @@ export default function Users(props) {
   const [hasDiscord, setHasDiscord] = useState(null);
   const [discordUrl,setDiscordUrl] = useState(null);
   const [hasMatrix, setHasMatrix] = useState(false);
+
+  const [fetchingMatrix, setFetchingMatrix] = useState(true);
+  const [fetchingDiscord, setFetchingDiscord] = useState(true);
+  const fetchingAnything = fetchingDiscord || fetchingMatrix;
   const refreshUsers = () => {
     api.request('/api/user/FetchPotentialFriendsV1').then(data => {
       setUsers(data.body.data.filter(v => !usersToExclude.current.includes(v.accountId)));
@@ -39,9 +43,11 @@ export default function Users(props) {
     refreshUsers();
     api.request('/api/user/Matrix').then(d => {
       setHasMatrix(!!d.body);
+      setFetchingMatrix(false);
     })
     api.request('/api/user/Discord').then(d => {
       setHasDiscord(!!d.body);
+      setFetchingDiscord(false);
       if (!d.body) {
         api.request('/api/user/DiscordLinkUrl', {
           method: 'POST',
@@ -91,11 +97,15 @@ export default function Users(props) {
     <div className='row mt-4'>
       <div className='col-12'>
         {
-          (!hasTags) ? <div className={s.alert}>
-            <span className={s.alertHeader}>{stillNeedSetupHeader}</span> Add at least one tag in <Link href={'/me'}>Settings</Link>.
-          </div> : (!hasDiscord && discordUrl && !hasMatrix) ? <div className={s.alert}>
-            <span className={s.alertHeader}>{stillNeedSetupHeader}</span> Click <Link href={discordUrl}>here</Link> to attach your discord account, or enter your Matrix username in <Link href={'/me'}>Settings</Link>.
-          </div> : null
+          fetchingAnything ? null : <>
+            {(!hasTags) ? <div className={s.alert}>
+              <span className={s.alertHeader}>{stillNeedSetupHeader}</span> Add at least one tag in <Link
+              href={'/me'}>Settings</Link>.
+            </div> : (!hasDiscord && discordUrl && !hasMatrix) ? <div className={s.alert}>
+              <span className={s.alertHeader}>{stillNeedSetupHeader}</span> Click <Link href={discordUrl}>here</Link> to
+              attach your discord account, or enter your Matrix username in <Link href={'/me'}>Settings</Link>.
+            </div> : null}
+          </>
         }
         <h3 className='fw-bold text-uppercase'>Users</h3>
         {
