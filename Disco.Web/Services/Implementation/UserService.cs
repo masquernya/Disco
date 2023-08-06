@@ -8,11 +8,23 @@ using Disco.Web.Exceptions.User;
 using Disco.Web.Models.User;
 using Isopoh.Cryptography.Argon2;
 using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace Disco.Web.Services;
 
 public class UserService : IUserService
 {
+    private static string uploadImagePath { get; set; }
+
+    public static void Configure(string pathToImages)
+    {
+        uploadImagePath = pathToImages;
+        // init
+        var folderExists = Directory.Exists(uploadImagePath);
+        if (!folderExists)
+            Directory.CreateDirectory(uploadImagePath);
+    }
+
     public async Task<string> HashPassword(string password)
     {
         var hash = Argon2.Hash(password);
@@ -269,14 +281,7 @@ public class UserService : IUserService
                 }).ToList(),
                 socialMedia = socialMedia,
             };
-            if (avatar != null)
-            {
-                item.avatar = new()
-                {
-                    source = avatar.source,
-                    imageUrl = avatar.url,
-                };
-            }
+            await SetAvatar(ctx, item, avatar);
             users.Add(item);
             if (users.Count >= 100)
                 break;
@@ -286,6 +291,33 @@ public class UserService : IUserService
         {
             data = users,
         };
+    }
+
+    private async Task SetAvatar(DiscoContext ctx, FetchUser item, AccountAvatar? avatar)
+    {
+        if (avatar != null)
+        {
+            if (avatar.source == AvatarSource.UserUploadedImage && avatar.userUploadedImageId != null)
+            {
+                var imageData = await ctx.images.FirstOrDefaultAsync(a => a.userUploadedImageId == avatar.userUploadedImageId);
+                if (imageData != null && imageData.status == ImageStatus.Approved)
+                {
+                    item.avatar = new()
+                    {
+                        source = avatar.source,
+                        imageUrl = imageData.url,
+                    };
+                }
+            }
+            else if (avatar.url != null)
+            {
+                item.avatar = new()
+                {
+                    source = avatar.source,
+                    imageUrl = avatar.url,
+                };   
+            }
+        }
     }
 
     public async Task<FetchUsersResponse> FetchUsers(long contextUserId)
@@ -320,7 +352,10 @@ public class UserService : IUserService
 
             if (inCommon != 0)
             {
-                var info = await ctx.accounts.FindAsync(id);
+                var info = await ctx.accounts.FirstOrDefaultAsync(a => a.accountId == id);
+                if (info == null)
+                    continue;
+                
                 var isOver18 = info.age == null || info.age >= 18;
                 if (isOver18 != amIOver18)
                     continue;
@@ -365,14 +400,7 @@ public class UserService : IUserService
                         isMatch = myTags.Any(a => a.tag == c.tag),
                     }).ToList(),
                 };
-                if (avatar != null)
-                {
-                    item.avatar = new()
-                    {
-                        source = avatar.source,
-                        imageUrl = avatar.url,
-                    };
-                }
+                await SetAvatar(ctx, item, avatar);
                 users.Add(item);
             }
 
@@ -570,6 +598,7 @@ public class UserService : IUserService
 
     private async Task<string?> GetMatrixProfilePictureUrl(string name, string domain)
     {
+        // We use matrix.org to avoid exposing our server IP to random home servers. this should be configurable in the future.
         var url = "https://matrix.org/_matrix/client/r0/profile/" + System.Web.HttpUtility.UrlEncode("@" + name + ":" + domain);
         
         var parsedUrl = new Uri(url);
@@ -617,6 +646,82 @@ public class UserService : IUserService
         
         await ctx.SaveChangesAsync();
     }
+
+    private async Task<string> GetHash(Stream file)
+    {
+        using var sha256 = SHA256.Create();
+        var hash = await sha256.ComputeHashAsync(file);
+        return Convert.ToHexString(hash).ToLowerInvariant().Replace("-", "");
+    }
+
+    public async Task<long> InsertAndUploadImage(Stream rawImageStream, long accountId)
+    {
+        const int profileImageResolution = 256; // 256x256 is hard coded in a lot of places. don't change this.
+        var imageStream = new MemoryStream(1024 * 1024 * 8); // Limit to 8mb. We'll resize which will make the final image considerably smaller, but we still don't want to DOS ourselves if we get too many images.
+        await rawImageStream.CopyToAsync(imageStream);
+        imageStream.Position = 0;
+        var originalSize = imageStream.Length;
+        
+        // get original hash
+        var originalHash = await GetHash(imageStream);
+        imageStream.Position = 0;
+        
+        // Read, resize, convert to webp.
+        using var image = await Image.LoadAsync(imageStream);
+        var resized = image.Clone(a => a.Resize(new ResizeOptions()
+        {
+            Mode = ResizeMode.Crop,
+            Size = new Size(profileImageResolution, profileImageResolution),
+        }));
+        imageStream = new MemoryStream();
+        await resized.SaveAsync(imageStream, new WebpEncoder()
+        {
+            Quality = 50,
+            FileFormat = WebpFileFormatType.Lossy,
+            SkipMetadata = true,
+            NearLossless = true,
+            NearLosslessQuality = 50,
+            Method = WebpEncodingMethod.BestQuality,
+        });
+        imageStream.Position = 0;
+        
+        var newHash = await GetHash(imageStream);
+        imageStream.Position = 0;
+        
+        var newSize = imageStream.Length;
+        Console.WriteLine("Image size diff: {0} vs {1} ({2})", originalSize, newSize, originalSize - newSize);
+        
+        // Try to lookup image
+        var ctx = new DiscoContext();
+
+        var exists = await ctx.images.FirstOrDefaultAsync(a => a.sha256Hash == newHash || a.originalSha256Hash == originalHash);
+        if (exists != null)
+        {
+            // Image already exists, just return the id.
+            return exists.userUploadedImageId;
+        }
+
+        // Upload under new hash.
+        var fullUploadPath = uploadImagePath + newHash + ".webp";
+        await using var fileStream = File.OpenWrite(fullUploadPath);
+        await imageStream.CopyToAsync(fileStream);
+        
+        var dbImage = await ctx.AddAsync(new UserUploadedImage()
+        {
+            sha256Hash = newHash,
+            originalSha256Hash = originalHash,
+            createdAt = DateTime.UtcNow,
+            fileSize = imageStream.Length,
+            format = ImageFormat.FormatWebP,
+            sizeX = profileImageResolution,
+            sizeY = profileImageResolution,
+            status = ImageStatus.AwaitingApproval,
+            updatedAt = DateTime.UtcNow,
+            accountId = accountId,
+        });
+        await ctx.SaveChangesAsync();
+        return dbImage.Entity.userUploadedImageId;
+    }
     
     public async Task SetMatrixAccount(long accountId, string fullUsername)
     {
@@ -659,15 +764,22 @@ public class UserService : IUserService
         // Update image, if required
         if (!string.IsNullOrWhiteSpace(imageUrl))
         {
+            // Fetch image
+            var image = await new HttpClient().GetAsync(imageUrl);
+            if (!image.IsSuccessStatusCode)
+                throw new Exception("Failed to fetch image");
+            
+            var userUploadedImageId = await InsertAndUploadImage(await image.Content.ReadAsStreamAsync(), accountId);
             // Delete old.
             var avatars = ctx.accountAvatars.Where(a => a.accountId == accountId);
             ctx.accountAvatars.RemoveRange(avatars);
             // Insert new.
             ctx.accountAvatars.Add(new AccountAvatar()
             {
-                source = AvatarSource.Matrix,
+                source = AvatarSource.UserUploadedImage,
                 accountId = accountId,
-                url = imageUrl,
+                url = null,
+                userUploadedImageId = userUploadedImageId,
                 createdAt = DateTime.UtcNow,
                 updatedAt = DateTime.UtcNow,
             });
@@ -705,7 +817,7 @@ public class UserService : IUserService
             name = parsed.Item1,
             tag = parsed.Item2,
         });
-        // If user doesn't have an avatar, set this to it
+        // If user has a discord avatar, update on-site
         if (!string.IsNullOrWhiteSpace(imageUrl))
         {
             var hasAvatar = await ctx.accountAvatars.FirstOrDefaultAsync(a => a.accountId == accountId);
@@ -744,12 +856,57 @@ public class UserService : IUserService
         var account = await ctx.accountDiscords.FirstOrDefaultAsync(a => a.accountId == accountId);
         return account;
     }
-    
+
+    public async Task<IEnumerable<UserUploadedImage>> GetImagesAwaitingReview()
+    {
+        var ctx = new DiscoContext();
+        var images = await ctx.images.Where(a => a.status == ImageStatus.AwaitingApproval).Take(100).ToListAsync();
+        return images;
+    }
+
+    public async Task DeleteImage(long userUploadedImageId)
+    {
+        var ctx = new DiscoContext();
+        var image = await ctx.images.FirstOrDefaultAsync(a => a.userUploadedImageId == userUploadedImageId);
+        if (image == null) throw new Exception("Image not found");
+
+        var path = uploadImagePath + image.sha256Hash + "." + image.extension;
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    public async Task SetImageStatus(long userUploadedImageId, ImageStatus status)
+    {
+        var ctx = new DiscoContext();
+        var image = await ctx.images.FirstOrDefaultAsync(a => a.userUploadedImageId == userUploadedImageId);
+        if (image == null) throw new Exception("Image not found");
+        image.status = status;
+        await ctx.SaveChangesAsync();
+    }
+
     public async Task<AccountAvatar?> GetAvatarForAccount(long accountId)
     {
         var ctx = new DiscoContext();
-        var account = await ctx.accountAvatars.FirstOrDefaultAsync(a => a.accountId == accountId);
-        return account;
+        var avatar = await ctx.accountAvatars.FirstOrDefaultAsync(a => a.accountId == accountId);
+        if (avatar == null) return avatar;
+        if (avatar.source != AvatarSource.UserUploadedImage || avatar.userUploadedImageId == null) return avatar;
+        
+        // check status, then set url if approved.
+        var uploadedImage = await ctx.images.FirstOrDefaultAsync(a => a.userUploadedImageId == avatar.userUploadedImageId.Value);
+        if (uploadedImage != null)
+        {
+            if (uploadedImage.status == ImageStatus.Approved)
+            {
+                avatar.url = uploadedImage.url;
+            }
+            else
+            {
+                // not approved, so return null for now.
+                return null;
+            }
+        }
+        
+        return avatar;
     }
 
     public async Task DeleteDiscord(long accountId)
