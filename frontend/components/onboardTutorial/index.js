@@ -32,7 +32,7 @@ const items = [
             For each user, you can either "Accept" or "Decline" them.
           </p>
           <p>
-            If you hit "Accept" on their profile, and the other person hits "Accept" on your profile, your discords will be shared with eachother.
+            If you hit "Accept" on their profile, and the other person hits "Accept" on your profile, your social media accounts will be shared with each other.
           </p>
           <p>
             "Accepting" and "Declining" users is completely private - nobody will know you accepted or declined them unless you both "Accept" each other.
@@ -58,23 +58,15 @@ const items = [
   },
   {
     description: <div>
-      <p>In order to get started, hit the button below to link your Discord account to DiscoFriends. This is required to start matching with people.</p>
-      <p>After linking your account, you can add your tags and information in <Link href={'/me'}>settings</Link>.</p>
+      <p>In order to get started, add a social media account in <Link href='/me'>settings</Link>.</p>
+      <p>After linking your account, you can add your tags other information about yourself.</p>
     </div>,
   },
 ]
 
 export default function OnboardTutorial() {
   const [position, setPosition] = useState(0);
-  const [discordUrl, setDiscordUrl] = useState(null);
   const [locked, setLocked] = useState(false);
-  useEffect(() => {
-    api.request('/api/user/DiscordLinkUrl', {
-      method: 'POST',
-    }).then(data => {
-      setDiscordUrl(data.body.redirectUrl);
-    })
-  }, []);
 
   const value = items[position];
   const label = !items[position+1] ? 'Get Started' : 'Next';
@@ -82,7 +74,7 @@ export default function OnboardTutorial() {
     <TutorialPage description={value.description} />
     <button disabled={locked} className={s.nextButton + ' text-uppercase'} onClick={() => {
       if (!items[position+1]) {
-        window.location.href = discordUrl;
+        window.location.href = '/me?link=true';
         return;
       }
       setPosition(position+1);
