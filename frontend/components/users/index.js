@@ -59,6 +59,7 @@ export default function Users(props) {
   const hasTags = !getUser() ? null : (getUser().data && getUser().data.tags.length > 0);
 
   const hasAnySocialMedia = mutualState && (mutualState.discord || mutualState.matrix);
+  const localUserHasAnySocial = (hasDiscord||hasMatrix);
 
   return <div className='container min-vh-100'>
     {
@@ -98,12 +99,12 @@ export default function Users(props) {
         }
         <h3 className='fw-bold text-uppercase'>Users</h3>
         {
-          (users === null && hasDiscord && hasTags) ? <div className='justify-content-center d-flex'><div className='spinner-border' /></div> : null
+          (users === null && localUserHasAnySocial && hasTags) ? <div className='justify-content-center d-flex'><div className='spinner-border' /></div> : null
         }
         {
-          (users && users.length === 0 && hasDiscord && hasTags) ? <div>
-            <p className='text-center mt-4'>No Users</p>
-            <p className='text-center'>It looks like we have nobody matching your tags right now. Check back later!</p>
+          (users && users.length === 0 && localUserHasAnySocial) ? <div>
+            <h5 className='text-center mt-4 fw-bold'>No Users</h5>
+            <p className='text-center'>It looks like we have nobody matching your tags right now. Check back later or add tags in <Link href='/me'>settings</Link>!</p>
           </div> : null
         }
        <div className='row'>
