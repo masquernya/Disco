@@ -439,6 +439,34 @@ public class UsersController : ControllerBase
             throw new UnauthorizedException();
         return await _userService.FetchAllUsers();
     }
+    
+    [HttpGet("FetchAllImagesAwaitingReview")]
+    public async Task<IEnumerable<UserUploadedImage>> FetchAllImagesAwaitingReview()
+    {
+        var sess = await GetSession();
+        if (!Config.IsAdmin(sess.accountId))
+            throw new UnauthorizedException();
+        return await _userService.GetImagesAwaitingReview();
+    }
+    
+    [HttpPost("ApproveImage")]
+    public async Task ApproveImage([Required, FromBody] ToggleImageStatusRequest request)
+    {
+        var sess = await GetSession();
+        if (!Config.IsAdmin(sess.accountId))
+            throw new UnauthorizedException();
+        await _userService.SetImageStatus(request.imageId, ImageStatus.Approved);
+    }
+    
+    [HttpPost("RejectImage")]
+    public async Task RejectImage([Required, FromBody] ToggleImageStatusRequest request)
+    {
+        var sess = await GetSession();
+        if (!Config.IsAdmin(sess.accountId))
+            throw new UnauthorizedException();
+        await _userService.SetImageStatus(request.imageId, ImageStatus.Rejected);
+        await _userService.DeleteImage(request.imageId);
+    }
 
     [HttpPost("DeleteAccount")]
     public async Task DeleteAccount()
