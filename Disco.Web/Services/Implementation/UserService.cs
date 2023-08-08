@@ -14,6 +14,12 @@ namespace Disco.Web.Services;
 
 public class UserService : IUserService
 {
+    private ILogger logger { get; set; }
+    public UserService(ILogger logger)
+    {
+        this.logger = logger;
+    }
+    
     private static string uploadImagePath { get; set; }
 
     public static void Configure(string pathToImages)
@@ -31,7 +37,7 @@ public class UserService : IUserService
         return hash;
     }
 
-    public async Task<bool> IsValid(string hash, string provided)
+    public async Task<bool> IsPasswordValid(string hash, string provided)
     {
         return Argon2.Verify(hash, provided);
     }
@@ -82,7 +88,7 @@ public class UserService : IUserService
         var result = await ctx.accountPasswords.FirstOrDefaultAsync(a => a.accountId == accountId);
         if (result != null)
         {
-            var ok = await IsValid(result.hash, value);
+            var ok = await IsPasswordValid(result.hash, value);
             return ok;
         }
 
@@ -689,7 +695,7 @@ public class UserService : IUserService
         imageStream.Position = 0;
         
         var newSize = imageStream.Length;
-        Console.WriteLine("Image size diff: {0} vs {1} ({2})", originalSize, newSize, originalSize - newSize);
+        logger.LogInformation("Image size diff: {0} vs {1} ({2})", originalSize, newSize, originalSize - newSize);
         
         // Try to lookup image
         var ctx = new DiscoContext();
@@ -985,7 +991,7 @@ public class UserService : IUserService
     {
         var ctx = new DiscoContext();
         var pass = await ctx.accountPasswords.FirstOrDefaultAsync(a => a.accountId == accountId);
-        var ok = await IsValid(pass.hash, originalPassword);
+        var ok = await IsPasswordValid(pass.hash, originalPassword);
         if (!ok)
             throw new InvalidUsernameOrPasswordException();
         // update
@@ -995,6 +1001,8 @@ public class UserService : IUserService
 
     public async Task DeleteAccount(long accountId)
     {
+        using var deleteAccountScope = logger.BeginScope("DeleteAccount");
+        logger.LogInformation("Account deletion requested for {0}", accountId);
         // Delete all account data
         var ctx = new DiscoContext();
         var account = await ctx.accounts.FirstOrDefaultAsync(a => a.accountId == accountId);
@@ -1008,6 +1016,7 @@ public class UserService : IUserService
         var passwords = await ctx.accountPasswords.Where(a => a.accountId == accountId).ToListAsync();
         var tokens = await ctx.accountDiscordCodes.Where(a => a.accountId == accountId).ToListAsync();
         var sessions = await ctx.accountSessions.Where(a => a.accountId == accountId).ToListAsync();
+        var matrixLinks = await ctx.accountMatrix.Where(a => a.accountId == accountId).ToListAsync();
         
         ctx.RemoveRange(tags);
         ctx.RemoveRange(avatars);
@@ -1017,8 +1026,35 @@ public class UserService : IUserService
         ctx.RemoveRange(passwords);
         ctx.RemoveRange(tokens);
         ctx.RemoveRange(sessions);
+        ctx.RemoveRange(matrixLinks);
         ctx.Remove(account);
+        
+        // Look for image files and delete those if nobody else is using them.
+        // This isn't really a PII issue - if two people upload the same image, the image is probably public/not owned by the authenticated user. They can always email the site owner if they have an issue with it (e.g. someone stole your pfp from twitter and used that).
+        var userUploads = await ctx.images.Where(a => a.accountId == accountId).ToListAsync();
+        foreach (var upload in userUploads)
+        {
+            var inUse = await ctx.accountAvatars.AnyAsync(a => a.userUploadedImageId == upload.userUploadedImageId && a.accountId != accountId);
+            if (inUse)
+            {
+                logger.LogInformation("Skip deletion of user upload {userUploadImageId}, it is in use by at least one other user", upload.userUploadedImageId);
+                continue;
+            }
+            
+            // We can safely delete the images.
+            var imagePath = uploadImagePath + upload.sha256Hash + "." + upload.extension;
+            try
+            {
+                if (File.Exists(imagePath))
+                    File.Delete(imagePath);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error deleting {imagePath}", imagePath);
+            }
+        }
         await ctx.SaveChangesAsync();
+        logger.LogInformation("Successfully deleted userAccount {accountId}", accountId);
     }
 
     public async Task<IEnumerable<AccountReport>> GetPendingReports()
