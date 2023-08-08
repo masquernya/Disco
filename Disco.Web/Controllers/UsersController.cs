@@ -45,16 +45,9 @@ public class UsersController : ControllerBase
     public async Task<SignUpResponse> SignUp([Required, FromBody] SignUpRequest request)
     {
         await RateLimitIpOnly(30);
-        if (request.captcha != null)
-        {
-            var captchaOk = await _captchaService.IsValid(request.captcha);
-            if (!captchaOk)
-                throw new CaptchaFailedException();
-        }
-        else
-        {
+        if (string.IsNullOrWhiteSpace(request.captcha) || !await _captchaService.IsValid(request.captcha))
             throw new CaptchaFailedException();
-        }
+        
         var result = await _userService.CreateAccount(request.username, request.password);
         await CreateSession(result.accountId);
         return new()
@@ -316,7 +309,7 @@ public class UsersController : ControllerBase
         if (canRedeem == null)
             throw new Exception("This token is no longer redeemable");
         var discordInfo = await _discordService.RedeemToken(code, canRedeem.redirectUrl);
-        Console.WriteLine("User is logged into discord as {0}#{1}", discordInfo.username, discordInfo.discriminator);
+        _logger.LogInformation("User is logged into discord as {username}#{discriminator}", discordInfo.username, discordInfo.discriminator);
         
         await _userService.AttachDiscordAccount(sess.accountId, long.Parse(discordInfo.id),
             discordInfo.username + "#" + discordInfo.discriminator, discordInfo.avatar);
@@ -326,15 +319,16 @@ public class UsersController : ControllerBase
 
     private string GetIp()
     {
-        if (HttpContext.Request.Headers.ContainsKey("cf-connecting-ip"))
-            return HttpContext.Request.Headers["cf-connecting-ip"]!;
+        // TODO: this should configurable or something. if you aren't using cloudflare, this can be exploited.
+        if (HttpContext.Request.Headers.TryGetValue("cf-connecting-ip", out var header))
+            return header!;
         return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "UNKNOWN";
     }
 
     private async Task RateLimitApiIpAndAccountId(long userId, int maxPerHour)
     {
         var resource = HttpContext.Request.Path;
-        Console.WriteLine("Path is {0}",resource);
+        _logger.LogInformation("RateLimitApiIpAndAccountId path is {resource}", resource);
         if (!await _rateLimitService.TryIncrementResource(resource + ":userId:" + userId, maxPerHour, TimeSpan.FromHours(1)))
             throw new RateLimitReachedException();
         if (!await _rateLimitService.TryIncrementResource(resource + ":ip:" + GetIp(), maxPerHour, TimeSpan.FromHours(1)))
@@ -344,7 +338,7 @@ public class UsersController : ControllerBase
     private async Task RateLimitIpOnly(int maxPerHour)
     {
         var resource = HttpContext.Request.Path;
-        Console.WriteLine("Path is {0}",resource);
+        _logger.LogInformation("RateLimitIpOnly Path is {resource}", resource);
         if (!await _rateLimitService.TryIncrementResource(resource + ":ip:" + GetIp(), maxPerHour, TimeSpan.FromHours(1)))
             throw new RateLimitReachedException();
     }
