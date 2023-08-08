@@ -10,6 +10,13 @@ internal class HCaptchaJsonResponse
 
 public class CaptchaService : ICaptchaService
 {
+    private ILogger logger { get; }
+
+    public CaptchaService(ILogger logger)
+    {
+        this.logger = logger;
+    }
+    
     private HttpClient client { get; } = new();
     public async Task<bool> IsValid(string captchaResponse)
     {
@@ -25,11 +32,15 @@ public class CaptchaService : ICaptchaService
             var result = await client.PostAsync("https://hcaptcha.com/siteverify", body);
             var str = await result.Content.ReadAsStringAsync();
             if (result.StatusCode != HttpStatusCode.OK)
+            {
+                logger.LogError("Failed to verify captcha. token={token} status={status} response={response}", captchaResponse, result.StatusCode, str);
                 return false;
+            }
 
             var decoded = JsonSerializer.Deserialize<HCaptchaJsonResponse>(str);
             if (decoded is not {success: true})
             {
+                logger.LogError("Failed to verify captcha. token={token} response={response}", captchaResponse, str);
                 return false;
             }
 
@@ -37,7 +48,7 @@ public class CaptchaService : ICaptchaService
         }
         catch (Exception e)
         {
-            // TODO: Logging
+            logger.LogError(e, "Failed to verify captcha. token={token}", captchaResponse);
             return false;
         }
     }
