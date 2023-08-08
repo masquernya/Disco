@@ -810,9 +810,23 @@ public class UserService : IUserService
         var toDelete = ctx.accountDiscords.Where(a => a.discordId == discordId || a.accountId == accountId);
         ctx.accountDiscords.RemoveRange(toDelete);
         await ctx.SaveChangesAsync();
+        long? userImageId = null;
         // Now add the account
         if (!string.IsNullOrWhiteSpace(imageUrl))
-            imageUrl = "https://cdn.discordapp.com/avatars/"+discordId+"/"+imageUrl+".png";
+        {
+            var imageUrlToFetch = "https://cdn.discordapp.com/avatars/"+discordId+"/"+imageUrl+".png";
+            var image = await new HttpClient().GetAsync(imageUrlToFetch);
+            if (image.IsSuccessStatusCode)
+            {
+                var stream = await image.Content.ReadAsStreamAsync();
+                // TODO: ideally, we would fail silently if image stuff errors.
+                userImageId = await InsertAndUploadImage(stream, accountId);
+            }
+            else
+            {
+                logger.LogWarning("Failed to fetch discord avatar for {discordAccountId} ({imageUrl})", discordId, imageUrlToFetch);
+            }
+        }
         await ctx.accountDiscords.AddAsync(new AccountDiscord()
         {
             discordId = discordId,
@@ -824,7 +838,7 @@ public class UserService : IUserService
             tag = parsed.Item2,
         });
         // If user has a discord avatar, update on-site
-        if (!string.IsNullOrWhiteSpace(imageUrl))
+        if (userImageId != null)
         {
             var hasAvatar = await ctx.accountAvatars.FirstOrDefaultAsync(a => a.accountId == accountId);
             if (hasAvatar == null)
@@ -834,15 +848,16 @@ public class UserService : IUserService
                 {
                     accountId = accountId,
                     createdAt = DateTime.UtcNow,
-                    source = AvatarSource.Discord,
+                    source = AvatarSource.UserUploadedImage,
                     updatedAt = DateTime.UtcNow,
-                    url = imageUrl,
+                    userUploadedImageId = userImageId,
+                    url = null,
                 });
             }
-            else if (hasAvatar.source == AvatarSource.Discord && hasAvatar.url != imageUrl)
+            else if (hasAvatar.source == AvatarSource.UserUploadedImage && hasAvatar.userUploadedImageId != userImageId)
             {
                 // Update
-                hasAvatar.url = imageUrl;
+                hasAvatar.userUploadedImageId = userImageId;
             }
         }
 
