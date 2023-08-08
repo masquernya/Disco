@@ -45,7 +45,8 @@ UserUploadedImage.baseUrl = serverBaseUrl;
 // DI
 var discord = new DiscordService(clientId, clientSecret, redirect);
 UserService.Configure(fullImagePath);
-builder.Services.AddTransient<IUserService>(_ => new UserService());
+builder.Services.AddLogging();
+builder.Services.AddTransient<IUserService>(c => new UserService(c.GetRequiredService<ILogger>()));
 builder.Services.AddSingleton<IDiscordService>(discord);
 builder.Services.AddSingleton<IRateLimitService>(_ => new InMemoryRateLimitService());
 builder.Services.AddSingleton<ICaptchaService>(_ => new CaptchaService());
