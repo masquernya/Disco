@@ -49,7 +49,7 @@ builder.Services.AddLogging();
 builder.Services.AddTransient<IUserService>(c => new UserService(c.GetRequiredService<ILogger<UserService>>()));
 builder.Services.AddSingleton<IDiscordService>(discord);
 builder.Services.AddSingleton<IRateLimitService>(_ => new InMemoryRateLimitService());
-builder.Services.AddSingleton<ICaptchaService>(_ => new CaptchaService());
+builder.Services.AddSingleton<ICaptchaService>(c => new CaptchaService(c.GetRequiredService<ILogger<CaptchaService>>()));
 
 // App
 var app = builder.Build();
