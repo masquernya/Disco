@@ -328,8 +328,9 @@ public class UserService : IUserService
 
     public async Task<FetchUsersResponse> FetchUsers(long contextUserId)
     {
+        using var fetchUsersScope = logger.BeginScope("FetchUsers");
         var ctx = new DiscoContext();
-        var me = await ctx.accounts.FindAsync(contextUserId);
+        var me = await ctx.accounts.FirstAsync(a => a.accountId == contextUserId);
         var amIOver18 = me.age == null || me.age >= 18;
         var myTags = await ctx.accountTags.Where(a => a.accountId == contextUserId).ToListAsync();
         // User must have at least one tag.
