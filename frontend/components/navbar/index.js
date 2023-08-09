@@ -27,9 +27,6 @@ export default function Navbar() {
           <Link href={'/'} className={s.navbarLink + ' text-uppercase'}>Home</Link>
         </div>
         <div className={s.navbarItem}>
-          <Link href={'/blog'} className={s.navbarLink + ' text-uppercase'}>Blog</Link>
-        </div>
-        <div className={s.navbarItem}>
           <Link href={'/list'} className={s.navbarLink + ' text-uppercase'}>People</Link>
         </div>
         <div className={s.navbarItem}>
