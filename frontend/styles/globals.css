@@ -1,0 +1,11 @@
+html, body {
+    background-color: #08031a;
+    color: #fff;
+}
+
+input, textarea, select, select > option, .form-control {
+    background-color: #08031a;
+    color: #fff;
+    border: 1px solid #270f82;
+}
+

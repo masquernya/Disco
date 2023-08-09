@@ -1,9 +1,9 @@
 .card {
-    border: 2px solid #130641;
-    background: #fbfbfb;
+    border: 2px solid #270f82;
+    background: #08031a;
     /*padding: 20px;*/
     /*background: #130641;*/
-    color: #130641;
+    color: #fff;
     border-radius: 14px;
     margin-top: 20px;
     animation: ImageFadeIn .5s ease-out;
@@ -59,7 +59,7 @@
     height: 20px;
     display: block;
     width: 100%;
-    background-color: #130641;
+    background-color: #270f82;
 }
 
 .displayName {
@@ -137,8 +137,8 @@
 }
 
 .accountEntry:hover > .accountDisplay {
-    color: #270f82;
-    /*border: 2px solid #270f82;*/
+    color: #fff;
+    border: 2px solid #270f82;
     transition: background-color .3s, border .3s;
 }
 
@@ -154,7 +154,8 @@
 }
 
 .accountDisplay {
-    color: #130641;
+    color: #fff;
+    font-weight: 600;
     border: 2px solid #130641;
     padding: 0 10px;
     border-top-right-radius: 10px;
@@ -186,7 +187,7 @@
 }
 
 .buttonAccept {
-    background-color: #130641;
+    background-color: #270f82;
     border: none;
     color: #fff;
     padding: 6px 14px;
@@ -203,8 +204,9 @@
 }
 
 .buttonDecline {
+    color: #fff;
     border: 1px solid #130641;
-    background-color: #fff;
+    background-color: #130641;
     padding: 6px 14px;
     font-weight: 600;
     flex-grow: 1;
@@ -223,7 +225,7 @@
     padding-left: 20px;
     padding-right: 20px;
     padding-bottom: 20px;
-    background-color: #130641;
+    background-color: #270f82;
     color: #fff;
     margin-bottom: 12px;
 }
