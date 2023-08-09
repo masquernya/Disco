@@ -14,6 +14,7 @@ export default function Users(props) {
   const [hasDiscord, setHasDiscord] = useState(null);
   const [discordUrl,setDiscordUrl] = useState(null);
   const [hasMatrix, setHasMatrix] = useState(false);
+  const [updateRelationshipLoading, setUpdateRelationshipLoading] = useState(false);
 
   const [fetchingMatrix, setFetchingMatrix] = useState(true);
   const [fetchingDiscord, setFetchingDiscord] = useState(true);
@@ -123,6 +124,9 @@ export default function Users(props) {
              users ? users.map(v => {
                return <div className='col-12 col-lg-6' key={v.accountId}>
                  <UserListCard user={v} accept={() => {
+                   if (updateRelationshipLoading)
+                     return;
+                   setUpdateRelationshipLoading(true);
                    onAcceptOrDecline(v);
                    api.request('/api/user/UpdateRelationship', {
                      method: 'POST',
@@ -144,7 +148,11 @@ export default function Users(props) {
                           discord: disc.body ? disc.body.displayString : null,
                           matrix: matrix.body ? ('@' + matrix.body.name + ':' + matrix.body.domain) : null,
                         })
-                      });
+                      }).finally(() => {
+                        setUpdateRelationshipLoading(false);
+                      })
+                    }else{
+                      setUpdateRelationshipLoading(false);
                     }
                    })
                  }} decline={() => {
