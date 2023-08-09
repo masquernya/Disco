@@ -20,7 +20,7 @@ public class UserService : IUserService
         this.logger = logger;
     }
     
-    private static string uploadImagePath { get; set; }
+    private static string? uploadImagePath { get; set; }
 
     public static void Configure(string pathToImages)
     {
@@ -31,15 +31,15 @@ public class UserService : IUserService
             Directory.CreateDirectory(uploadImagePath);
     }
 
-    public async Task<string> HashPassword(string password)
+    public Task<string> HashPassword(string password)
     {
         var hash = Argon2.Hash(password);
-        return hash;
+        return Task.FromResult(hash);
     }
 
-    public async Task<bool> IsPasswordValid(string hash, string provided)
+    public Task<bool> IsPasswordValid(string hash, string provided)
     {
-        return Argon2.Verify(hash, provided);
+        return Task.FromResult(Argon2.Verify(hash, provided));
     }
     
     public async Task<Account> CreateAccount(string username, string password)
@@ -131,7 +131,7 @@ public class UserService : IUserService
     public async Task<Account?> GetAccountById(long accountId)
     {
         var ctx = new DiscoContext();
-        return await ctx.accounts.FindAsync(accountId);
+        return await ctx.accounts.FirstOrDefaultAsync(a => a.accountId == accountId);
     }
 
     public async Task<AccountDescription?> GetDescription(long accountId)
@@ -227,7 +227,7 @@ public class UserService : IUserService
         var hasDiscord = await ctx.accountDiscords.AnyAsync(a => a.accountId == contextUserId);
         var hasMatrix = await ctx.accountMatrix.AnyAsync(a => a.accountId == contextUserId);
         
-        var me = await ctx.accounts.FindAsync(contextUserId);
+        var me = await ctx.accounts.FirstAsync(a => a.accountId == contextUserId);
         var amIOver18 = me.age == null || me.age >= 18;
         var myTags = await ctx.accountTags.Where(a => a.accountId == contextUserId).ToListAsync();
         
@@ -240,13 +240,19 @@ public class UserService : IUserService
         foreach (var user in usersToInclude.OrderBy(a => a.accountId))
         {
             var id = user.otherAccountId;
-            if (!usersToIncludeSecondary.Any(a => a.accountId == id))
+            if (usersToIncludeSecondary.All(a => a.accountId != id))
                 continue;
             
             if (id < startAccountId)
                 continue;
             
-            var info = await ctx.accounts.FindAsync(id);
+            var info = await ctx.accounts.FirstOrDefaultAsync(a => a.accountId == id);
+            if (info == null)
+            {
+                logger.LogWarning("User {id} not found despite being in usersToInclude for {userId}", id, contextUserId);
+                continue;
+            }
+            
             var isOver18 = info.age == null || info.age >= 18;
             if (isOver18 != amIOver18)
                 continue;
@@ -513,6 +519,9 @@ public class UserService : IUserService
         var item = await ctx.accountDiscordCodes.FirstOrDefaultAsync(a => a.code == code && a.accountId == accountId);
         if (item != null)
         {
+            if (item.redirectUrl == null)
+                throw new Exception("No redirect URL set for this code.");
+            
             var response = new DiscordStateResponse()
             {
                 state = item.code,
@@ -551,7 +560,7 @@ public class UserService : IUserService
         }
 
         var ctx = new DiscoContext();
-        var account = await ctx.accounts.FindAsync(accountId);
+        var account = await ctx.accounts.FirstAsync(a => a.accountId == accountId);
         account.gender = gender;
         await ctx.SaveChangesAsync();
     }
@@ -561,7 +570,7 @@ public class UserService : IUserService
         if (age is > 100 or < 13)
             throw new InvalidAgeException();
         var ctx = new DiscoContext();
-        var account = await ctx.accounts.FindAsync(accountId);
+        var account = await ctx.accounts.FirstAsync(a => a.accountId == accountId);
         account.age = age;
         await ctx.SaveChangesAsync();
     }
@@ -590,7 +599,7 @@ public class UserService : IUserService
         }
 
         var ctx = new DiscoContext();
-        var account = await ctx.accounts.FindAsync(accountId);
+        var account = await ctx.accounts.FirstAsync(a => a.accountId == accountId);
         account.pronouns = pronouns;
         await ctx.SaveChangesAsync();
 
@@ -1007,6 +1016,11 @@ public class UserService : IUserService
     {
         var ctx = new DiscoContext();
         var pass = await ctx.accountPasswords.FirstOrDefaultAsync(a => a.accountId == accountId);
+        if (pass == null)
+        {
+            logger.LogError("Password not found for account {accountId}", accountId);
+            throw new Exception("Password not found for accountId");
+        }
         var ok = await IsPasswordValid(pass.hash, originalPassword);
         if (!ok)
             throw new InvalidUsernameOrPasswordException();
@@ -1141,7 +1155,7 @@ public class UserService : IUserService
         var existingBan = await ctx.accountBans.FirstOrDefaultAsync(a => a.bannedAccountId == bannedAccountId);
         if (existingBan != null)
             return;
-        var ban = await ctx.accountBans.AddAsync(new AccountBan()
+        await ctx.accountBans.AddAsync(new AccountBan()
         {
             bannedAccountId = bannedAccountId,
             reason = reason,
