@@ -98,23 +98,25 @@ export default function Me(props) {
       </div>
       <div className={'col-12 col-lg-6 ' + (showPreview ? '' : 'd-none d-lg-block')}>
         <h3 className='fw-bold'>Preview</h3>
-        <UserListCard user={{
-          username: user.username,
-          displayName: user.displayName,
-          description: user.description,
-          pronouns: user.pronouns,
-          age: user.age,
-          gender: user.gender,
-          socialMedia: socialMedia,
-          tags: user.tags.map(v => {
-            return {
-              displayTag: v.tag,
-            }
-          }),
-          avatar: avatar ? {
-            imageUrl: avatar.url,
-          } : null,
-        }} />
+        <div>
+          <UserListCard user={{
+            username: user.username,
+            displayName: user.displayName,
+            description: user.description,
+            pronouns: user.pronouns,
+            age: user.age,
+            gender: user.gender,
+            socialMedia: socialMedia,
+            tags: user.tags.map(v => {
+              return {
+                displayTag: v.tag,
+              }
+            }),
+            avatar: avatar ? {
+              imageUrl: avatar.url,
+            } : null,
+          }} />
+        </div>
       </div>
     </div>
   </div>
