@@ -15,24 +15,24 @@ namespace Disco.Web.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly ILogger<UsersController> _logger;
-    private IUserService _userService { get; }
-    private IDiscordService _discordService { get; }
-    private IRateLimitService _rateLimitService { get; }
-    private ICaptchaService _captchaService { get; }
+    private IUserService userService { get; }
+    private IDiscordService discordService { get; }
+    private IRateLimitService rateLimitService { get; }
+    private ICaptchaService captchaService { get; }
 
     public UsersController(ILogger<UsersController> logger, IUserService userService, IDiscordService discordService, IRateLimitService rateLimitService, ICaptchaService captchaService)
     {
         _logger = logger;
-        _userService = userService;
-        _discordService = discordService;
-        _rateLimitService = rateLimitService;
-        _captchaService = captchaService;
+        this.userService = userService;
+        this.discordService = discordService;
+        this.rateLimitService = rateLimitService;
+        this.captchaService = captchaService;
     }
 
     private async Task CreateSession(long accountId)
     {
         _logger.Log(LogLevel.Information, "Creating a session for {accountId}",accountId);
-        var auth = new SessionAuthentication(HttpContext, _userService);
+        var auth = new SessionAuthentication(HttpContext, userService);
         await auth.CreateSession(accountId);
     }
 
@@ -45,10 +45,10 @@ public class UsersController : ControllerBase
     public async Task<SignUpResponse> SignUp([Required, FromBody] SignUpRequest request)
     {
         await RateLimitIpOnly(30);
-        if (string.IsNullOrWhiteSpace(request.captcha) || !await _captchaService.IsValid(request.captcha))
+        if (string.IsNullOrWhiteSpace(request.captcha) || !await captchaService.IsValid(request.captcha))
             throw new CaptchaFailedException();
         
-        var result = await _userService.CreateAccount(request.username, request.password);
+        var result = await userService.CreateAccount(request.username, request.password);
         await CreateSession(result.accountId);
         return new()
         {
@@ -65,20 +65,20 @@ public class UsersController : ControllerBase
     public async Task SetAvatar([Required, FromBody] SetAvatarRequest request)
     {
         var session = await GetSession();
-        await _userService.SetAvatarSource(session.accountId, request.source);
+        await userService.SetAvatarSource(session.accountId, request.source);
     }
 
     [HttpPost("Login")]
     public async Task Login([Required, FromBody] LoginRequest request)
     {
         await RateLimitIpOnly(120);
-        var account = await _userService.GetAccountByName(request.username);
+        var account = await userService.GetAccountByName(request.username);
         if (account == null)
             throw new InvalidUsernameOrPasswordException();
-        var passwordOk = await _userService.IsPasswordValid(account.accountId, request.password);
+        var passwordOk = await userService.IsPasswordValid(account.accountId, request.password);
         if (!passwordOk)
             throw new InvalidUsernameOrPasswordException();
-        var banned = await _userService.GetBan(account.accountId);
+        var banned = await userService.GetBan(account.accountId);
         if (banned != null)
             throw new AccountBannedException(banned.reason);
         // Create session
@@ -88,15 +88,15 @@ public class UsersController : ControllerBase
     [HttpGet("MyUser")]
     public async Task<MyAccountResponse> GetCurrentUser()
     {
-        var sess = new SessionAuthentication(HttpContext, _userService);
+        var sess = new SessionAuthentication(HttpContext, userService);
         var result = await sess.GetSession();
         if (result != null)
         {
-            var item = await _userService.GetAccountById(result.accountId);
+            var item = await userService.GetAccountById(result.accountId);
             if (item != null)
             {
-                var tags = await _userService.GetTags(result.accountId);
-                var desc = await _userService.GetDescription(result.accountId);
+                var tags = await userService.GetTags(result.accountId);
+                var desc = await userService.GetDescription(result.accountId);
                 return new()
                 {
                     accountId = item.accountId,
@@ -121,7 +121,7 @@ public class UsersController : ControllerBase
     public async Task<AccountDiscord?> GetMyDiscord()
     {
         var sess = await GetSession();
-        var discord = await _userService.GetDiscordForAccount(sess.accountId);
+        var discord = await userService.GetDiscordForAccount(sess.accountId);
         return discord;
     }
 
@@ -129,15 +129,15 @@ public class UsersController : ControllerBase
     public async Task<AccountDiscord?> GetOtherDiscord(long accountId)
     {
         var sess = await GetSession();
-        var state = await _userService.IsRelationshipMutual(sess.accountId, accountId);
+        var state = await userService.IsRelationshipMutual(sess.accountId, accountId);
         if (!state)
             throw new UnauthorizedException();
         
-        var currentUserHasDiscord = await _userService.GetDiscordForAccount(sess.accountId);
+        var currentUserHasDiscord = await userService.GetDiscordForAccount(sess.accountId);
         if (currentUserHasDiscord == null)
             return null;
         
-        var discord = await _userService.GetDiscordForAccount(accountId);
+        var discord = await userService.GetDiscordForAccount(accountId);
         return discord;
     }
 
@@ -145,7 +145,7 @@ public class UsersController : ControllerBase
     public async Task DeleteDiscord()
     {
         var sess = await GetSession();
-        await _userService.DeleteDiscord(sess.accountId);
+        await userService.DeleteDiscord(sess.accountId);
     }
     
     
@@ -153,7 +153,7 @@ public class UsersController : ControllerBase
     public async Task<AccountMatrix?> GetMyMatrix()
     {
         var sess = await GetSession();
-        var matrix = await _userService.GetMatrixForAccount(sess.accountId);
+        var matrix = await userService.GetMatrixForAccount(sess.accountId);
         return matrix;
     }
 
@@ -162,36 +162,36 @@ public class UsersController : ControllerBase
     {
         await RateLimitIpOnly(60);
         var sess = await GetSession();
-        await _userService.SetMatrixAccount(sess.accountId, request.username);
+        await userService.SetMatrixAccount(sess.accountId, request.username);
     }
     
     [HttpDelete("Matrix")]
     public async Task DeleteMyMatrix()
     {
         var sess = await GetSession();
-        await _userService.DeleteMatrix(sess.accountId);
+        await userService.DeleteMatrix(sess.accountId);
     }
     
     [HttpGet("{accountId}/Matrix")]
     public async Task<AccountMatrix?> GetOtherMatrix(long accountId)
     {
         var sess = await GetSession();
-        var state = await _userService.IsRelationshipMutual(sess.accountId, accountId);
+        var state = await userService.IsRelationshipMutual(sess.accountId, accountId);
         if (!state)
             throw new UnauthorizedException();
         
-        var currentUserHasMatrix = await _userService.GetMatrixForAccount(sess.accountId);
+        var currentUserHasMatrix = await userService.GetMatrixForAccount(sess.accountId);
         if (currentUserHasMatrix == null)
             return null;
         
-        return await _userService.GetMatrixForAccount(accountId);
+        return await userService.GetMatrixForAccount(accountId);
     }
 
     [HttpGet("Avatar")]
     public async Task<AccountAvatar?> GetMyAvatar()
     {
         var sess = await GetSession();
-        var avatar = await _userService.GetAvatarForAccount(sess.accountId);
+        var avatar = await userService.GetAvatarForAccount(sess.accountId);
         return avatar;
     }
 
@@ -199,12 +199,12 @@ public class UsersController : ControllerBase
     public async Task DeleteMyAvatar()
     {
         var sess = await GetSession();
-        await _userService.DeleteAvatar(sess.accountId);
+        await userService.DeleteAvatar(sess.accountId);
     }
 
     private async Task<AccountSession> GetSession()
     {
-        var sess = new SessionAuthentication(HttpContext, _userService);
+        var sess = new SessionAuthentication(HttpContext, userService);
         var result = await sess.GetSession();
         if (result == null)
             throw new UnauthorizedException();
@@ -215,85 +215,85 @@ public class UsersController : ControllerBase
     public async Task<AccountTag> AddTag([Required, FromBody] AddTagRequest request)
     {
         var sess = await GetSession();
-        return await _userService.AddTag(sess.accountId, request.tag);
+        return await userService.AddTag(sess.accountId, request.tag);
     }
 
     [HttpDelete("Tag")]
     public async Task DeleteTagRequest([Required, FromBody] RemoveTagRequest request)
     {
         var sess = await GetSession();
-        await _userService.DeleteTag(sess.accountId, request.tagId);
+        await userService.DeleteTag(sess.accountId, request.tagId);
     }
 
     [HttpPost("Description")]
     public async Task SetDescription([Required, FromBody] SetDescriptionRequest request)
     {
         var sess = await GetSession();
-        await _userService.SetDescription(sess.accountId, request.description);
+        await userService.SetDescription(sess.accountId, request.description);
     }
 
     [HttpPost("DisplayName")]
     public async Task SetDisplayName([Required, FromBody] SetDisplayNameRequest request)
     {
         var sess = await GetSession();
-        await _userService.SetDisplayName(sess.accountId, request.displayName);
+        await userService.SetDisplayName(sess.accountId, request.displayName);
     }
 
     [HttpPost("Gender")]
     public async Task SetGender([Required, FromBody] SetGenderRequest request)
     {
         var ses = await GetSession();
-        await _userService.SetGender(ses.accountId, request.gender);
+        await userService.SetGender(ses.accountId, request.gender);
     }
 
     [HttpPost("Pronouns")]
     public async Task SetPronouns([Required, FromBody] SetPronounsRequest request)
     {
         var sess = await GetSession();
-        await _userService.SetPronouns(sess.accountId, request.pronouns);
+        await userService.SetPronouns(sess.accountId, request.pronouns);
     }
 
     [HttpPost("Age")]
     public async Task SetAge([Required, FromBody] SetAgeRequest request)
     {
         var sess = await GetSession();
-        await _userService.SetAge(sess.accountId, request.age);
+        await userService.SetAge(sess.accountId, request.age);
     }
 
     [HttpPost("UpdateRelationship")]
     public async Task<AccountRelationshipUpdateResponse> UpdateRelationship([Required, FromBody] UpdateRelationshipRequest request)
     {
         var sess = await GetSession();
-       return await _userService.UpdateRelationship(sess.accountId, request.targetAccountId, request.status);
+       return await userService.UpdateRelationship(sess.accountId, request.targetAccountId, request.status);
     }
 
     [HttpGet("TopTags")]
     public async Task<IEnumerable<TopTagWithCount>> GetTopTags()
     {
-        return (await _userService.GetTopTags());
+        return (await userService.GetTopTags());
     }
 
     [HttpGet("FetchPotentialFriendsV1")]
     public async Task<FetchUsersResponse> FetchPotentialFriends()
     {
         var sess = await GetSession();
-        return await _userService.FetchUsers(sess.accountId);
+        return await userService.FetchUsers(sess.accountId);
     }
     
     [HttpGet("FetchMatches")]
     public async Task<FetchUsersResponse> FetchMatches(long startId = 0)
     {
         var sess = await GetSession();
-        return await _userService.FetchUsersByStatus(sess.accountId, RelationStatus.Accepted, startId);
+        return await userService.FetchUsersByStatus(sess.accountId, RelationStatus.Accepted, startId);
     }
 
     [HttpPost("DiscordLinkUrl")]
     public async Task<LinkDiscordUrlResponse> LinkDiscordUrl()
     {
         var sess = await GetSession();
-        var token = await _userService.CreateDiscordToken(sess.accountId);
-        var url = await _discordService.GetAuthorizationUrl(token);
-        await _userService.SetDiscordTokenUrl(token, _discordService.GetDiscoRedirectUrl(token));
+        var token = await userService.CreateDiscordToken(sess.accountId);
+        var url = await discordService.GetAuthorizationUrl(token);
+        await userService.SetDiscordTokenUrl(token, discordService.GetDiscoRedirectUrl(token));
         return new()
         {
             redirectUrl = url,
@@ -305,13 +305,13 @@ public class UsersController : ControllerBase
     {
         var sess = await GetSession();
         await RateLimitApiIpAndAccountId(sess.accountId, 60);
-        var canRedeem = await _userService.RedeemDiscordToken(state, sess.accountId);
+        var canRedeem = await userService.RedeemDiscordToken(state, sess.accountId);
         if (canRedeem == null)
             throw new Exception("This token is no longer redeemable");
-        var discordInfo = await _discordService.RedeemToken(code, canRedeem.redirectUrl);
+        var discordInfo = await discordService.RedeemToken(code, canRedeem.redirectUrl);
         _logger.LogInformation("User is logged into discord as {username}#{discriminator}", discordInfo.username, discordInfo.discriminator);
         
-        await _userService.AttachDiscordAccount(sess.accountId, long.Parse(discordInfo.id),
+        await userService.AttachDiscordAccount(sess.accountId, long.Parse(discordInfo.id),
             discordInfo.username + "#" + discordInfo.discriminator, discordInfo.avatar);
         
         return new RedirectResult(Config.frontendUrl+"/me?discordSuccess=true");
@@ -329,9 +329,9 @@ public class UsersController : ControllerBase
     {
         var resource = HttpContext.Request.Path;
         _logger.LogInformation("RateLimitApiIpAndAccountId path is {resource}", resource);
-        if (!await _rateLimitService.TryIncrementResource(resource + ":userId:" + userId, maxPerHour, TimeSpan.FromHours(1)))
+        if (!await rateLimitService.TryIncrementResource(resource + ":userId:" + userId, maxPerHour, TimeSpan.FromHours(1)))
             throw new RateLimitReachedException();
-        if (!await _rateLimitService.TryIncrementResource(resource + ":ip:" + GetIp(), maxPerHour, TimeSpan.FromHours(1)))
+        if (!await rateLimitService.TryIncrementResource(resource + ":ip:" + GetIp(), maxPerHour, TimeSpan.FromHours(1)))
             throw new RateLimitReachedException();
     }
     
@@ -339,7 +339,7 @@ public class UsersController : ControllerBase
     {
         var resource = HttpContext.Request.Path;
         _logger.LogInformation("RateLimitIpOnly Path is {resource}", resource);
-        if (!await _rateLimitService.TryIncrementResource(resource + ":ip:" + GetIp(), maxPerHour, TimeSpan.FromHours(1)))
+        if (!await rateLimitService.TryIncrementResource(resource + ":ip:" + GetIp(), maxPerHour, TimeSpan.FromHours(1)))
             throw new RateLimitReachedException();
     }
     
@@ -348,7 +348,7 @@ public class UsersController : ControllerBase
     {
         var sess = await GetSession();
         await RateLimitApiIpAndAccountId(sess.accountId, 10);
-        await _userService.UpdatePassword(sess.accountId, request.originalPassword, request.newPassword);
+        await userService.UpdatePassword(sess.accountId, request.originalPassword, request.newPassword);
     }
 
     [HttpPost("Report")]
@@ -363,7 +363,7 @@ public class UsersController : ControllerBase
         {
             return;
         }
-        await _userService.ReportUser(sess.accountId, request.accountId, request.reason, request.field);
+        await userService.ReportUser(sess.accountId, request.accountId, request.reason, request.field);
     }
 
     [HttpGet("PendingReports")]
@@ -372,7 +372,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        return await _userService.GetPendingReports();
+        return await userService.GetPendingReports();
     }
     
     [HttpPost("ResolveReport")]
@@ -381,7 +381,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        await _userService.SetReportState(reportId, ReportState.Resolved);
+        await userService.SetReportState(reportId, ReportState.Resolved);
     }
     
     [HttpPost("BanAccount")]
@@ -390,7 +390,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId) || Config.IsAdmin(request.accountId))
             throw new UnauthorizedException();
-        await _userService.BanAccount(request.accountId, request.reason);
+        await userService.BanAccount(request.accountId, request.reason);
     }
         
     [HttpPost("UnbanAccount")]
@@ -399,7 +399,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        await _userService.UnbanAccount(request.accountId);
+        await userService.UnbanAccount(request.accountId);
     }
 
     [HttpPost("RejectReport")]
@@ -408,7 +408,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        await _userService.SetReportState(reportId, ReportState.Rejected);
+        await userService.SetReportState(reportId, ReportState.Rejected);
     }
 
     [HttpGet("FullUserInfo")]
@@ -417,18 +417,22 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        var account = await _userService.GetAccountById(accountId);
-        var tags = await _userService.GetTags(accountId);
-        var desc = await _userService.GetDescription(accountId);
-        var discord = await _userService.GetDiscordForAccount(accountId);
-        var image = await _userService.GetAvatarForAccount(accountId);
-        return new()
+        var account = await userService.GetAccountById(accountId);
+        if (account == null)
+            throw new UserNotFoundException();
+        
+        var tags = await userService.GetTags(accountId);
+        var desc = await userService.GetDescription(accountId);
+        var discord = await userService.GetDiscordForAccount(accountId);
+        var image = await userService.GetAvatarForAccount(accountId);
+        var matrix = await userService.GetMatrixForAccount(accountId);
+        return new(account)
         {
-            account = account,
             accountTags = tags,
             description = desc,
             discord = discord,
             avatar = image,
+            matrix = matrix,
         };
     }
     
@@ -438,7 +442,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        return await _userService.FetchAllUsers();
+        return await userService.FetchAllUsers();
     }
     
     [HttpGet("FetchAllImagesAwaitingReview")]
@@ -447,7 +451,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        return await _userService.GetImagesAwaitingReview();
+        return await userService.GetImagesAwaitingReview();
     }
     
     [HttpPost("ApproveImage")]
@@ -456,7 +460,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        await _userService.SetImageStatus(request.imageId, ImageStatus.Approved);
+        await userService.SetImageStatus(request.imageId, ImageStatus.Approved);
     }
     
     [HttpPost("RejectImage")]
@@ -465,8 +469,8 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        await _userService.SetImageStatus(request.imageId, ImageStatus.Rejected);
-        await _userService.DeleteImage(request.imageId);
+        await userService.SetImageStatus(request.imageId, ImageStatus.Rejected);
+        await userService.DeleteImage(request.imageId);
     }
 
     [HttpGet("FetchUnfilteredTopTags")]
@@ -476,7 +480,7 @@ public class UsersController : ControllerBase
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
 
-        return await _userService.GetTopTagsUnfiltered();
+        return await userService.GetTopTagsUnfiltered();
     }
     
     [HttpPost("ApproveTopTag")]
@@ -485,7 +489,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        await _userService.ApproveTopTag(request.tag, request.displayTag);
+        await userService.ApproveTopTag(request.tag, request.displayTag);
     }
     
     [HttpPost("DeleteTopTag")]
@@ -494,7 +498,7 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))
             throw new UnauthorizedException();
-        await _userService.DeleteTopTag(request.tag);
+        await userService.DeleteTopTag(request.tag);
     }
 
     [HttpPost("DeleteAccount")]
@@ -502,6 +506,6 @@ public class UsersController : ControllerBase
     {
         await RateLimitIpOnly(15);
         var sess = await GetSession();
-        await _userService.DeleteAccount(sess.accountId);
+        await userService.DeleteAccount(sess.accountId);
     }
 }
