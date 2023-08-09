@@ -44,7 +44,7 @@ export default function Matches() {
       </div>
       {
         matches ? matches.map(v => {
-          return <div className='col-12 col-lg-6' key={v.accountId}>
+          return <div className='col-12 col-lg-6 mb-4' key={v.accountId}>
             <UserListCard user={v} hideButtons={true} />
           </div>
         }) : null
