@@ -6,6 +6,7 @@ const nextConfig = {
   publicRuntimeConfig: {
     baseUrl: process.env.BASE_URL,
     hcaptchaPublic: process.env.HCAPTCHA_PUBLIC,
+    contactEmail: process.env.CONTACT_EMAIL,
   },
 }
 
