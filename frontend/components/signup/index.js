@@ -131,5 +131,6 @@ export default function SignUp(props) {
       })
     }}>Sign Up</button>
     <p className='mt-2 mb-0'>Already have an account? <Link href={'/login'}>Login</Link></p>
+    <p className='mt-2 mb-0'>Forgot your password? <Link href={'/forgot-password'}>Reset Password</Link></p>
   </div>
 }
