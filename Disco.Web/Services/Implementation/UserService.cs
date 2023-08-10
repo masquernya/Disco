@@ -15,9 +15,11 @@ namespace Disco.Web.Services;
 public class UserService : IUserService
 {
     private ILogger logger { get; set; }
-    public UserService(ILogger logger)
+    private ICacheHelperService cache { get; set; }
+    public UserService(ILogger logger, ICacheHelperService cache)
     {
         this.logger = logger;
+        this.cache = cache;
     }
     
     private static string? uploadImagePath { get; set; }
@@ -1195,29 +1197,33 @@ public class UserService : IUserService
         return accounts;
     }
 
+    private const string TopTagsCacheKey = "GlobalTopTags";
+    
     public async Task<IEnumerable<TopTagWithCount>> GetTopTags()
     {
-        // TODO: cache
-        var ctx = new DiscoContext();
-        var normalizedTags = await ctx.accountTags.GroupBy(a => a.tag).OrderByDescending(a => a.Count()).Select(c => new TopTagWithCount()
+        return await cache.GetWithFallback(TopTagsCacheKey, TimeSpan.FromMinutes(10), async () =>
         {
-            tag = c.Key,
-            count = c.Count(),
-        }).Take(100).ToListAsync();
-        // convert to admin tags
-        var adminList = new List<TopTagWithCount>();
-        foreach (var data in normalizedTags)
-        {
-            var adminData = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == data.tag);
-            if (adminData == null)
-                continue; // not approved
-            data.displayTag = adminData.displayTag;
-            adminList.Add(data);
-            if (adminList.Count == 25)
-                break;
-        }
+            var ctx = new DiscoContext();
+            var normalizedTags = await ctx.accountTags.GroupBy(a => a.tag).OrderByDescending(a => a.Count()).Select(c => new TopTagWithCount()
+            {
+                tag = c.Key,
+                count = c.Count(),
+            }).Take(100).ToListAsync();
+            // convert to admin tags
+            var adminList = new List<TopTagWithCount>();
+            foreach (var data in normalizedTags)
+            {
+                var adminData = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == data.tag);
+                if (adminData == null)
+                    continue; // not approved
+                data.displayTag = adminData.displayTag;
+                adminList.Add(data);
+                if (adminList.Count == 25)
+                    break;
+            }
         
-        return adminList;
+            return adminList;
+        });
     }
 
     public async Task<IEnumerable<TopTagWithCount>> GetTopTagsUnfiltered()
@@ -1234,6 +1240,7 @@ public class UserService : IUserService
 
     public async Task ApproveTopTag(string tag, string displayTag)
     {
+        await cache.RemoveAsync(TopTagsCacheKey);
         var ctx = new DiscoContext();
         // add to toptags
         var existing = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == tag);
@@ -1250,6 +1257,7 @@ public class UserService : IUserService
 
     public async Task DeleteTopTag(string tag)
     {
+        await cache.RemoveAsync(TopTagsCacheKey);
         var ctx = new DiscoContext();
         var existing = await ctx.topTags.FirstOrDefaultAsync(a => a.tag == tag);
         if (existing == null)
