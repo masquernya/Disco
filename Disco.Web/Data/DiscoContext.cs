@@ -21,6 +21,7 @@ public class DiscoContext : DbContext
     public DbSet<AccountDiscordBan> accountDiscordBans { get; set; }
     public DbSet<UserUploadedImage> images { get; set; }
     public DbSet<TopTag> topTags { get; set; }
+    public DbSet<AccountResetPassword> accountResetPasswords { get; set; }
 
     private string dbPath { get; set; }
     
@@ -72,6 +73,10 @@ public class DiscoContext : DbContext
 
         b.Entity<TopTag>()
             .HasIndex(a => a.tag)
+            .IsUnique();
+
+        b.Entity<AccountResetPassword>()
+            .HasIndex(a => a.token)
             .IsUnique();
     }
 
@@ -366,4 +371,32 @@ public class TopTag
     public long topTagId { get; set; }
     public string tag { get; set; }
     public string displayTag { get; set; }
+}
+
+public enum ResetPasswordStatus
+{
+    Created = 1,
+    Verified,
+    ResetSuccessful,
+}
+
+public enum ResetPasswordVerificationMethod
+{
+    Unknown = 1,
+    Discord,
+    Matrix,
+}
+
+public class AccountResetPassword
+{
+    public long accountResetPasswordId { get; set; }
+    public long accountId { get; set; }
+    public string token { get; set; }
+    public string? rawResetData { get; set; } // discord user id, matrix id, etc, primarily for CS/debugging
+    public ResetPasswordStatus status { get; set; }
+    public ResetPasswordVerificationMethod method { get; set; }
+    public long? accountDiscordId { get; set; }
+    public long? accountMatrixId { get; set; }
+    public DateTime createdAt { get; set; }
+    public DateTime updatedAt { get; set; }
 }
