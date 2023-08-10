@@ -123,3 +123,11 @@ public class AccountBannedException : BaseWebException
         
     }
 }
+
+public class InvalidPasswordResetTokenException : BaseWebException
+{
+    public InvalidPasswordResetTokenException() : base(HttpStatusCode.BadRequest, "Invalid password reset token")
+    {
+        
+    }
+}
