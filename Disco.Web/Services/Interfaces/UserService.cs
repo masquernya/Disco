@@ -68,4 +68,7 @@ public interface IUserService
     Task<IEnumerable<TopTagWithCount>> GetTopTagsUnfiltered();
     Task ApproveTopTag(string tag, string displayTag);
     Task DeleteTopTag(string tag);
+    Task<bool> TrySetPasswordFromToken(string token, string newPassword);
+    Task<string?> TryRedeemMatrixPasswordResetRequest(string matrixAccount, string token);
+    Task<AccountResetPassword> CreatePasswordResetRequestForMatrix(string username, string matrixAccount);
 }
