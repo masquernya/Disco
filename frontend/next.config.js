@@ -7,6 +7,7 @@ const nextConfig = {
     baseUrl: process.env.BASE_URL,
     hcaptchaPublic: process.env.HCAPTCHA_PUBLIC,
     contactEmail: process.env.CONTACT_EMAIL,
+    matrixBotUsername: process.env.MATRIX_BOT_USERNAME,
   },
 }
 
