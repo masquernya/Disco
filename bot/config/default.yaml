@@ -1,0 +1,22 @@
+# Where the homeserver's Client-Server API is located. Typically this
+# is where clients would be connecting to in order to send messages.
+homeserverUrl: "https://matrix.org"
+
+# An access token for the bot to use. Learn how to get an access token
+# at https://t2bot.io/docs/access_tokens
+accessToken: "access_token_here"
+
+# Whether or not to autojoin rooms when invited.
+autoJoin: true
+
+# Location on disk for where to store various bot information.
+dataPath: "./storage"
+
+# Set to false to disable encryption support. Encrypted data will be
+# stored under dataPath.
+encryption: true
+
+# DiscoFriends API URL
+apiBaseUrl: "http://localhost:5194"
+# DiscoFriends Bot API Key
+apiKey: "1234"
