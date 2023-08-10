@@ -73,6 +73,7 @@ public class UserService : IUserService
             updatedAt = DateTime.UtcNow,
         });
         await ctx.SaveChangesAsync();
+        logger.LogInformation($"Created account {account.Entity.accountId} ({account.Entity.username})");
         return account.Entity;
     }
 
@@ -614,7 +615,7 @@ public class UserService : IUserService
         return tags;
     }
 
-    private async Task<string?> GetMatrixProfilePictureUrl(string name, string domain)
+    public async Task<string?> GetMatrixProfilePictureUrl(string name, string domain)
     {
         // We use matrix.org to avoid exposing our server IP to random home servers. this should be configurable in the future.
         var url = "https://matrix.org/_matrix/client/r0/profile/" + System.Web.HttpUtility.UrlEncode("@" + name + ":" + domain);
@@ -707,7 +708,7 @@ public class UserService : IUserService
         imageStream.Position = 0;
         
         var newSize = imageStream.Length;
-        logger.LogInformation("Image size diff: {0} vs {1} ({2})", originalSize, newSize, originalSize - newSize);
+        logger.LogInformation("Image size diff: {original} vs {new} ({diff})", originalSize, newSize, originalSize - newSize);
         
         // Try to lookup image
         var ctx = new DiscoContext();
