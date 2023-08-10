@@ -508,4 +508,25 @@ public class UsersController : ControllerBase
         var sess = await GetSession();
         await userService.DeleteAccount(sess.accountId);
     }
+
+    [HttpPost("PasswordReset/Matrix")]
+    public async Task<ResetPasswordResponse> CreateResetRequest([Required, FromBody] ResetPasswordWithMatrixRequest request)
+    {
+        await RateLimitIpOnly(15);
+        var result = await userService.CreatePasswordResetRequestForMatrix(request.username, request.matrixUserId);
+        
+        return new()
+        {
+            token = result.token,
+        };
+    }
+
+    [HttpPost("PasswordReset/Submit")]
+    public async Task SubmitResetPasswordToken([Required, FromBody] ResetPasswordSubmitRequest request)
+    {
+        await RateLimitIpOnly(60);
+        if (!await userService.TrySetPasswordFromToken(request.token, request.newPassword))
+            throw new InvalidPasswordResetTokenException();
+        // OK
+    }
 }
