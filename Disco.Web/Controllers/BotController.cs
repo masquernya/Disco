@@ -1,0 +1,57 @@
+using System.ComponentModel.DataAnnotations;
+using Disco.Web.Exceptions.Matrix;
+using Disco.Web.Exceptions.User;
+using Disco.Web.Models.Bot;
+using Disco.Web.Services;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Disco.Web.Controllers;
+
+[ApiController]
+[Route("/api/Bot")]
+public class BotController : ControllerBase
+{
+    public const string BotAuthorizationHeaderName = "BotAuthorization";
+    private readonly ILogger _logger;
+    private IUserService userService { get; }
+    private IBotService botService { get; }
+    private IHttpRequestService httpRequestService { get; }
+
+    public BotController(ILogger<BotController> logger, IUserService userService, IBotService botService, IHttpRequestService httpRequestService)
+    {
+        this._logger = logger;
+        this.userService = userService;
+        this.botService = botService;
+        this.httpRequestService = httpRequestService;
+    }
+
+    public bool IsAuthorized()
+    {
+        var providedValue = httpRequestService.GetRequestHeader(BotAuthorizationHeaderName);
+        var expectedValue = botService.GetAuthorizationKey();
+        if (providedValue != expectedValue)
+            return false;
+        return true;
+    }
+
+    [HttpPost("ResetPasswordMatrix")]
+    public async Task<ResetPasswordVerificationResponse> ResetPasswordMatrix(
+        [Required, FromBody] ResetPasswordVerification request)
+    {
+        if (!IsAuthorized())
+            throw new UnauthorizedException();
+
+        if (string.IsNullOrWhiteSpace(request.userId))
+            throw new InvalidMatrixUsernameException();
+        if (string.IsNullOrWhiteSpace(request.token))
+            throw new Exception("Invalid token");
+
+        var resetToken = await userService.TryRedeemMatrixPasswordResetRequest(request.userId, request.token);
+        if (resetToken == null)
+            throw new Exception("Invalid token");
+        return new()
+        {
+            redirectUrl = Config.frontendUrl + "/reset-password/token/" + System.Web.HttpUtility.UrlEncode(resetToken),
+        };
+    }
+}
