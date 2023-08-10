@@ -32,6 +32,12 @@ public class XsrfMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // Skip XSRF check for bot api.
+        if (context.Request.Path.ToString().StartsWith("/api/Bot/"))
+        {
+            await _next(context);
+            return;
+        }
         if (context.Request.Method is not "GET" or "OPTIONS")
         {
             context.Request.Headers.TryGetValue("xsrf", out var providedToken);
