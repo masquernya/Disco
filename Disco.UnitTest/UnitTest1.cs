@@ -10,7 +10,8 @@ public class UnitTestUserService
     public async Task TestPasswordHash()
     {
         var log = new Moq.Mock<Microsoft.Extensions.Logging.ILogger>();
-        var user = new UserService(log.Object);
+        var cacheHelper = new Moq.Mock<ICacheHelperService>();
+        var user = new UserService(log.Object, cacheHelper.Object);
         var hash = await user.HashPassword("password");
         Assert.True(await user.IsPasswordValid(hash, "password"));
     }
