@@ -16,6 +16,9 @@ Config.frontendUrl = builder.Configuration.GetValue<string>("FrontedUrl");
 Config.adminUserId = builder.Configuration.GetValue<long>("AdminUserId");
 Config.hcaptchaPrivate = builder.Configuration.GetValue<string>("HCaptcha:Private");
 Config.hcatpchaPublic = builder.Configuration.GetValue<string>("HCaptcha:Public");
+var folder = Environment.SpecialFolder.LocalApplicationData;
+var path = Environment.GetFolderPath(folder);
+DiscoContext.dbPath = System.IO.Path.Join(path, "disco.db");
 var FrontendCorsPolicy = "_frontendCorsAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {

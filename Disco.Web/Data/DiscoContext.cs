@@ -23,13 +23,11 @@ public class DiscoContext : DbContext
     public DbSet<TopTag> topTags { get; set; }
     public DbSet<AccountResetPassword> accountResetPasswords { get; set; }
 
-    private string dbPath { get; set; }
+    public static string dbPath { get; set; }
     
     public DiscoContext()
     {
-        var folder = Environment.SpecialFolder.LocalApplicationData;
-        var path = Environment.GetFolderPath(folder);
-        dbPath = System.IO.Path.Join(path, "disco.db");
+
     }
     
     protected override void OnModelCreating(ModelBuilder b)
@@ -83,7 +81,9 @@ public class DiscoContext : DbContext
     // The following configures EF to create a Sqlite database file in the
     // special "local" folder for your platform.
     protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite($"Data Source={dbPath}");
+    {
+        options.UseSqlite($"Data Source={dbPath}");
+    }
 }
 
 public enum SocialMedia
