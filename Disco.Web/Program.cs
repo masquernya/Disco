@@ -41,10 +41,12 @@ var clientId = builder.Configuration.GetValue<string>("DiscordOauth:ClientId");
 var clientSecret = builder.Configuration.GetValue<string>("DiscordOauth:Secret");
 var redirect = builder.Configuration.GetValue<string>("DiscordOauth:Redirect");
 var fullImagePath = builder.Configuration.GetValue<string>("FullImagePath");
+var botKey = builder.Configuration.GetValue<string>("BotAuthorizationKey");
 UserUploadedImage.baseUrl = serverBaseUrl;
 // DI
 var discord = new DiscordService(clientId, clientSecret, redirect);
 UserService.Configure(fullImagePath);
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddLogging();
 builder.Services.AddSingleton<ICacheService>(new MemoryCacheService());
 builder.Services.AddSingleton<ICacheHelperService>(s => new CacheHelperService(s.GetRequiredService<ICacheService>(), s.GetRequiredService<ILogger<CacheHelperService>>()));
@@ -52,6 +54,9 @@ builder.Services.AddTransient<IUserService>(c => new UserService(c.GetRequiredSe
 builder.Services.AddSingleton<IDiscordService>(discord);
 builder.Services.AddSingleton<IRateLimitService>(_ => new InMemoryRateLimitService());
 builder.Services.AddSingleton<ICaptchaService>(c => new CaptchaService(c.GetRequiredService<ILogger<CaptchaService>>()));
+builder.Services.AddSingleton<IBotService>(new BotService(botKey));
+builder.Services.AddTransient<IHttpRequestService>(s =>
+    new HttpRequestService(s.GetRequiredService<IHttpContextAccessor>()));
 
 // App
 var app = builder.Build();
