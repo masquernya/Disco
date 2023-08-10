@@ -740,8 +740,8 @@ public class UserService : IUserService
         await ctx.SaveChangesAsync();
         return dbImage.Entity.userUploadedImageId;
     }
-    
-    public async Task SetMatrixAccount(long accountId, string fullUsername)
+
+    private Tuple<string, string> GetNameAndDomainFromMatrix(string fullUsername)
     {
         var separator = fullUsername.LastIndexOf(':');
         if (separator == -1)
@@ -762,6 +762,12 @@ public class UserService : IUserService
         if (username.Length is < 1 or > 64)
             throw new InvalidMatrixUsernameException();
         
+        return new(username, domain);
+    }
+
+    public async Task SetMatrixAccount(long accountId, string fullUsername)
+    {
+        var (username, domain) = GetNameAndDomainFromMatrix(fullUsername);
         var imageUrl = await GetMatrixProfilePictureUrl(username, domain);
         var ctx = new DiscoContext();
         
@@ -1028,6 +1034,7 @@ public class UserService : IUserService
             throw new InvalidUsernameOrPasswordException();
         // update
         pass.hash = await HashPassword(newPassword);
+        pass.updatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync();
     }
 
@@ -1264,5 +1271,97 @@ public class UserService : IUserService
             return;
         ctx.Remove(existing);
         await ctx.SaveChangesAsync();
+    }
+
+    public async Task<bool> TrySetPasswordFromToken(string token, string newPassword)
+    {
+        var ctx = new DiscoContext();
+        var passwordResetData = await ctx.accountResetPasswords.FirstOrDefaultAsync(a => a.token == token && a.status == ResetPasswordStatus.Verified && a.updatedAt > DateTime.UtcNow.AddHours(-2));
+        if (passwordResetData == null)
+            return false;
+        
+        var accountData = await ctx.accounts.FirstOrDefaultAsync(a => a.accountId == passwordResetData.accountId);
+        if (accountData == null)
+            return false;
+
+        var accountId = accountData.accountId;
+        var pass = await ctx.accountPasswords.FirstOrDefaultAsync(a => a.accountId == accountId);
+        if (pass == null)
+        {
+            logger.LogError("Password not found for account {accountId}", accountId);
+            throw new Exception("Password not found for accountId");
+        }
+        // update
+        pass.hash = await HashPassword(newPassword);
+        pass.updatedAt = DateTime.UtcNow;
+        passwordResetData.status = ResetPasswordStatus.ResetSuccessful;
+        await ctx.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<string?> TryRedeemMatrixPasswordResetRequest(string matrixAccount, string token)
+    {
+        var (matrixUsername, matrixDomain) = GetNameAndDomainFromMatrix(matrixAccount);
+        var ctx = new DiscoContext();
+        var passwordResetData = await ctx.accountResetPasswords.FirstOrDefaultAsync(a => a.token == token && a.status == ResetPasswordStatus.Created && a.method == ResetPasswordVerificationMethod.Matrix && a.createdAt > DateTime.UtcNow.AddHours(-2));
+        if (passwordResetData == null)
+            return null;
+        
+        var accountData = await ctx.accounts.FirstOrDefaultAsync(a => a.accountId == passwordResetData.accountId);
+        if (accountData == null)
+            return null;
+        
+        // confirm matrix account is still attached to df account
+        var matrixData = await ctx.accountMatrix.Where(a => a.accountId == accountData.accountId).ToListAsync();
+        var matrixAccountData = matrixData.FirstOrDefault(a => a.name == matrixUsername && a.domain == matrixDomain);
+        if (matrixAccountData == null)
+            return null;
+        
+        // confirm ids match
+        if (passwordResetData.accountMatrixId != matrixAccountData.accountMatrixId)
+            return null; // user is trying to reset a different account
+        
+        // the request is correct.
+        passwordResetData.status = ResetPasswordStatus.Verified;
+        passwordResetData.updatedAt = DateTime.UtcNow;
+        await ctx.SaveChangesAsync();
+        // return the token
+        return passwordResetData.token;
+    }
+    
+    public async Task<AccountResetPassword> CreatePasswordResetRequestForMatrix(string username, string matrixAccount)
+    {
+        // first, parse matrix
+        var (matrixUsername, matrixDomain) = GetNameAndDomainFromMatrix(matrixAccount);
+
+        var ctx = new DiscoContext();
+        var userData = await ctx.accounts.FirstOrDefaultAsync(a => a.username == username);
+        if (userData == null)
+            throw new UserNotFoundException();
+
+        var matrixData = await ctx.accountMatrix.Where(a => a.accountId == userData.accountId).ToListAsync();
+        var matrixAccountData = matrixData.FirstOrDefault(a => a.name == matrixUsername && a.domain == matrixDomain);
+        // Don't error if matrix account is invalid, otherwise, it would let people enumerate accounts.
+
+        var matrixAccountId = matrixAccountData?.accountMatrixId;
+        // matrix and username are ok. check if we have a pending request.
+        var pending = await ctx.accountResetPasswords.FirstOrDefaultAsync(a => a.accountId == userData.accountId && a.method == ResetPasswordVerificationMethod.Matrix && a.status == ResetPasswordStatus.Created && a.createdAt > DateTime.UtcNow.AddHours(-1) && a.accountMatrixId == matrixAccountId);
+        if (pending != null)
+            return pending; // Use that.
+        
+        var record = await ctx.AddAsync(new AccountResetPassword()
+        {
+            accountId = userData.accountId,
+            createdAt = DateTime.UtcNow,
+            updatedAt = DateTime.UtcNow,
+            method = ResetPasswordVerificationMethod.Matrix,
+            status = ResetPasswordStatus.Created,
+            rawResetData = null,
+            token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            accountMatrixId = matrixAccountData?.accountMatrixId, // If this is null, password reset cannot continue but it will still get to the "paste your token to the bot" stage.
+            accountDiscordId = null,
+        });
+        await ctx.SaveChangesAsync();
+        return record.Entity;
     }
 }
