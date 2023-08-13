@@ -22,7 +22,7 @@ export default function Avatar({avatar, setAvatar, discord, matrix}) {
           }).then(data => {
             window.location.href = data.body.redirectUrl;
           })
-        }}>Update Avatar (Discord)</button> : null
+        }}>Update Avatar from Discord</button> : null
       }
       {
         matrix ? <button disabled={settingAvatar} className={s.saveButton} onClick={() => {
@@ -41,7 +41,7 @@ export default function Avatar({avatar, setAvatar, discord, matrix}) {
               setSettingAvatar(false);
             })
 
-        }}>Update Avatar (Matrix)</button> : null
+        }}>Update Avatar from Matrix</button> : null
       }
     </div>
     <div>

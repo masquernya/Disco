@@ -4,8 +4,8 @@ html, body {
 }
 
 input, textarea, select, select > option, .form-control {
-    background-color: #08031a;
+    background-color: #130641;
     color: #fff;
-    border: 1px solid #270f82;
+    border: none;
 }
 

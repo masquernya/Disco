@@ -1,5 +1,5 @@
 .card {
-    border: 2px solid #270f82;
+    border: 2px solid #130641;
     background: #08031a;
     /*padding: 20px;*/
     /*background: #130641;*/
@@ -59,7 +59,7 @@
     height: 20px;
     display: block;
     width: 100%;
-    background-color: #270f82;
+    background-color: #130641;
 }
 
 .displayName {
@@ -225,7 +225,7 @@
     padding-left: 20px;
     padding-right: 20px;
     padding-bottom: 20px;
-    background-color: #270f82;
+    background-color: #130641;
     color: #fff;
     margin-bottom: 12px;
 }
