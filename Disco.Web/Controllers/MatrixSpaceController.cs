@@ -8,6 +8,7 @@ using Disco.Web.Models.Matrix;
 using Disco.Web.Models.User;
 using Disco.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using AddTagRequest = Disco.Web.Models.Matrix.AddTagRequest;
 
 namespace Disco.Web.Controllers;
 
@@ -53,6 +54,21 @@ public class MatrixSpaceController : ControllerBase
     {
         var session = await GetSession();
         await _matrixSpaceService.SetIs18Plus(session.accountId, request.matrixSpaceId, request.is18Plus);
+    }
+    
+
+    [HttpPut("Tag")]
+    public async Task<MatrixSpaceTag> AddTag([Required, FromBody] AddTagRequest request)
+    {
+        var sess = await GetSession();
+        return await _matrixSpaceService.AddTag(sess.accountId, request.matrixSpaceId, request.tag);
+    }
+
+    [HttpDelete("Tag")]
+    public async Task DeleteTagRequest([Required, FromBody] DeleteTagRequest request)
+    {
+        var sess = await GetSession();
+        await _matrixSpaceService.DeleteTag(sess.accountId, request.matrixSpaceId, request.tagId);
     }
 
 }
