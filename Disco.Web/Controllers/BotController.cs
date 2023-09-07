@@ -16,13 +16,15 @@ public class BotController : ControllerBase
     private IUserService userService { get; }
     private IBotService botService { get; }
     private IHttpRequestService httpRequestService { get; }
+    private IMatrixSpaceService spaceService {get;}
 
-    public BotController(ILogger<BotController> logger, IUserService userService, IBotService botService, IHttpRequestService httpRequestService)
+    public BotController(ILogger<BotController> logger, IUserService userService, IBotService botService, IHttpRequestService httpRequestService, IMatrixSpaceService spaceService)
     {
         this._logger = logger;
         this.userService = userService;
         this.botService = botService;
         this.httpRequestService = httpRequestService;
+        this.spaceService = spaceService;
     }
 
     public bool IsAuthorized()
@@ -53,5 +55,23 @@ public class BotController : ControllerBase
         {
             redirectUrl = Config.frontendUrl + "/reset-password/token/" + System.Web.HttpUtility.UrlEncode(resetToken),
         };
+    }
+
+    [HttpPost("AddOrUpdateSpace")]
+    public async Task AddOrUpdateSpace([Required, FromBody] AddOrUpdateSpaceRequest request)
+    {
+        if (!IsAuthorized())
+            throw new UnauthorizedException();
+        
+        if (string.IsNullOrWhiteSpace(request.invite))
+            throw new ArgumentException("Null or empty", nameof(request.invite));
+        
+        if (request.memberCount < 0)
+            throw new ArgumentException("Invalid member count", nameof(request.memberCount));
+        
+        if (string.IsNullOrWhiteSpace(request.name))
+            throw new ArgumentException("Null or empty", nameof(request.name));
+        
+        await spaceService.AddOrUpdateMatrixSpace(request.invite, request.name, request.description, request.memberCount, request.avatar, request.admins);
     }
 }
