@@ -14,9 +14,10 @@ public class UnitTestBotController
         var userService = new Moq.Mock<IUserService>();
         var botService = new Moq.Mock<IBotService>();
         var httpRequest = new Moq.Mock<IHttpRequestService>();
+        var matrixSpace = new Moq.Mock<IMatrixSpaceService>();
         botService.Setup(c => c.GetAuthorizationKey()).Returns(key);
         httpRequest.Setup(c => c.GetRequestHeader(BotController.BotAuthorizationHeaderName)).Returns(key);
-        var controller = new BotController(log.Object, userService.Object, botService.Object, httpRequest.Object);
+        var controller = new BotController(log.Object, userService.Object, botService.Object, httpRequest.Object, matrixSpace.Object);
         var ok = controller.IsAuthorized();
         Assert.True(ok);
     }
@@ -35,9 +36,10 @@ public class UnitTestBotController
         var userService = new Moq.Mock<IUserService>();
         var botService = new Moq.Mock<IBotService>();
         var httpRequest = new Moq.Mock<IHttpRequestService>();
+        var matrixSpace = new Moq.Mock<IMatrixSpaceService>();
         botService.Setup(c => c.GetAuthorizationKey()).Returns(value);
         httpRequest.Setup(c => c.GetRequestHeader(BotController.BotAuthorizationHeaderName)).Returns(realKey);
-        var controller = new BotController(log.Object, userService.Object, botService.Object, httpRequest.Object);
+        var controller = new BotController(log.Object, userService.Object, botService.Object, httpRequest.Object, matrixSpace.Object);
         var ok = controller.IsAuthorized();
         Assert.False(ok);
     }
