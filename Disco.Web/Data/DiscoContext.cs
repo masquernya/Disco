@@ -22,6 +22,9 @@ public class DiscoContext : DbContext
     public DbSet<UserUploadedImage> images { get; set; }
     public DbSet<TopTag> topTags { get; set; }
     public DbSet<AccountResetPassword> accountResetPasswords { get; set; }
+    public DbSet<MatrixSpace> matrixSpaces { get; set; }
+    public DbSet<MatrixSpaceAdmin> matrixSpaceAdmins { get; set; }
+    public DbSet<MatrixSpaceTag> matrixSpaceTags { get; set; }
 
     public static string dbPath { get; set; }
     
@@ -397,6 +400,39 @@ public class AccountResetPassword
     public ResetPasswordVerificationMethod method { get; set; }
     public long? accountDiscordId { get; set; }
     public long? accountMatrixId { get; set; }
+    public DateTime createdAt { get; set; }
+    public DateTime updatedAt { get; set; }
+}
+
+public class MatrixSpace
+{
+    public long matrixSpaceId { get; set; }
+    public string name { get; set; }
+    public string? description { get; set; }
+    public int memberCount { get; set; }
+    public long? imageId { get; set; }
+    public string invite { get; set; }
+    public bool is18Plus { get; set; }
+    public DateTime createdAt { get; set; }
+    public DateTime updatedAt { get; set; }
+}
+
+public class MatrixSpaceAdmin
+{
+    public long matrixSpaceAdminId { get; set; }
+    public long matrixSpaceId { get; set; }
+    public string matrixUserId { get; set; }
+    public DateTime createdAt { get; set; }
+    public DateTime updatedAt { get; set; }
+}
+
+
+public class MatrixSpaceTag
+{
+    public long matrixSpaceTagId { get; set; }
+    public long matrixSpaceId { get; set; }
+    public string tag { get; set; }
+    public string displayTag { get; set; }
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
 }
