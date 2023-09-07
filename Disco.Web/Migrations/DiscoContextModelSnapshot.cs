@@ -419,6 +419,95 @@ namespace Disco.Web.Migrations
                     b.ToTable("accountTags");
                 });
 
+            modelBuilder.Entity("Disco.Web.Data.MatrixSpace", b =>
+                {
+                    b.Property<long>("matrixSpaceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("createdAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("imageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("invite")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("is18Plus")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("memberCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("updatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("matrixSpaceId");
+
+                    b.ToTable("matrixSpaces");
+                });
+
+            modelBuilder.Entity("Disco.Web.Data.MatrixSpaceAdmin", b =>
+                {
+                    b.Property<long>("matrixSpaceAdminId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("createdAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("matrixSpaceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("matrixUserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("updatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("matrixSpaceAdminId");
+
+                    b.ToTable("matrixSpaceAdmins");
+                });
+
+            modelBuilder.Entity("Disco.Web.Data.MatrixSpaceTag", b =>
+                {
+                    b.Property<long>("matrixSpaceTagId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("createdAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("displayTag")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("matrixSpaceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("tag")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("updatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("matrixSpaceTagId");
+
+                    b.ToTable("matrixSpaceTags");
+                });
+
             modelBuilder.Entity("Disco.Web.Data.TopTag", b =>
                 {
                     b.Property<long>("topTagId")
