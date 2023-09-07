@@ -8,7 +8,7 @@ export default function Home() {
     <div className='container'>
       <div className='row mt-4'>
         <div className='col-12 col-lg-6'>
-          <h1 className={s.header}>Make Discord Friends Today</h1>
+          <h1 className={s.header}>Make Matrix Friends Today</h1>
           <p className='mt-4 ms-1'>
             <span className='fw-bold'>Join DiscoFriends and start matching with people in seconds.</span> No more wasting time in servers you don't fit in with or trying to hold a conversation in a sea of messages.
           </p>

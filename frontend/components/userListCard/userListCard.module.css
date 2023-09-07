@@ -247,3 +247,12 @@
     opacity: 1;
     color: darkred;
 }
+
+.editDescription {
+    width: 100%;
+}
+
+.editDescription:active, .editDescription, .editDescription:focus {
+    border: none;
+    outline: none;
+}
