@@ -71,4 +71,5 @@ public interface IUserService
     Task<bool> TrySetPasswordFromToken(string token, string newPassword);
     Task<string?> TryRedeemMatrixPasswordResetRequest(string matrixAccount, string token);
     Task<AccountResetPassword> CreatePasswordResetRequestForMatrix(string username, string matrixAccount);
+    Task<long> InsertAndUploadImage(Stream rawImageStream, long accountId);
 }
