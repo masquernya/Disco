@@ -60,6 +60,7 @@ builder.Services.AddSingleton<ICaptchaService>(c => new CaptchaService(c.GetRequ
 builder.Services.AddSingleton<IBotService>(new BotService(botKey));
 builder.Services.AddTransient<IHttpRequestService>(s =>
     new HttpRequestService(s.GetRequiredService<IHttpContextAccessor>()));
+builder.Services.AddTransient<IMatrixSpaceService>(c => new MatrixSpaceService(c.GetRequiredService<ILogger<IMatrixSpaceService>>(), c.GetRequiredService<ICacheHelperService>(), c.GetRequiredService<IUserService>()));
 
 // App
 var app = builder.Build();
