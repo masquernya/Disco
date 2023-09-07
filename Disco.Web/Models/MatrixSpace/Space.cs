@@ -14,3 +14,15 @@ public class SetIsMatrixSpace18PlusRequest
     public long matrixSpaceId { get; set; }
     public bool is18Plus { get; set; }
 }
+
+public class AddTagRequest
+{
+    public long matrixSpaceId { get; set; }
+    public string tag { get; set; } = null!;
+}
+
+public class DeleteTagRequest
+{
+    public long matrixSpaceId { get; set; }
+    public long tagId { get; set; }
+}
