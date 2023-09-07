@@ -188,4 +188,42 @@ public class MatrixSpaceService : IMatrixSpaceService
         space.is18Plus = is18Plus;
         await ctx.SaveChangesAsync();
     }
+
+    public async Task<MatrixSpaceTag> AddTag(long accountId, long matrixSpaceId, string tag)
+    {
+        if (!await DoesHavePermission(accountId, matrixSpaceId))
+            throw new UnauthorizedException();
+        
+        await using var ctx = new DiscoContext();
+        var normalizedTag = AccountTag.NormalizeTag(tag);
+        
+        var exists = await ctx.matrixSpaceTags.FirstOrDefaultAsync(a => a.matrixSpaceId == matrixSpaceId && a.tag == normalizedTag);
+        if (exists != null)
+            return exists;
+
+        var result = await ctx.matrixSpaceTags.AddAsync(new MatrixSpaceTag()
+        {
+            matrixSpaceId = matrixSpaceId,
+            tag = normalizedTag,
+            displayTag = tag,
+            createdAt = DateTime.UtcNow,
+            updatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+        return result.Entity;
+    }
+
+    public async Task DeleteTag(long accountId, long matrixSpaceId, long tagId)
+    {
+        if (!await DoesHavePermission(accountId, matrixSpaceId))
+            throw new UnauthorizedException();
+        
+        await using var ctx = new DiscoContext();
+        var tag = await ctx.matrixSpaceTags.FirstOrDefaultAsync(a => a.matrixSpaceTagId == tagId && a.matrixSpaceId == matrixSpaceId);
+        if (tag == null)
+            throw new ArgumentException("Tag not found", nameof(tagId));
+        
+        ctx.matrixSpaceTags.Remove(tag);
+        await ctx.SaveChangesAsync();
+    }
 }
