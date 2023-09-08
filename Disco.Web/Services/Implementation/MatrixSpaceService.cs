@@ -167,7 +167,7 @@ public class MatrixSpaceService : IMatrixSpaceService
             result.Add(new MatrixSpaceWithDetails()
             {
                 space = space,
-                tags = tags.Where(a => a.matrixSpaceId == space.matrixSpaceId).Select(a => a.tag).ToList(),
+                tags = tags.Where(a => a.matrixSpaceId == space.matrixSpaceId).ToList(),
                 imageUrl = image?.status == ImageStatus.Approved ? image.url : null
             });
         }

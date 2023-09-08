@@ -5,7 +5,7 @@ namespace Disco.Web.Models.Matrix;
 public class MatrixSpaceWithDetails
 {
     public MatrixSpace space { get; set; } = new();
-    public IEnumerable<string> tags { get; set; } = new List<string>();
+    public IEnumerable<MatrixSpaceTag> tags { get; set; } = new List<MatrixSpaceTag>();
     public string? imageUrl { get; set; }
 }
 
