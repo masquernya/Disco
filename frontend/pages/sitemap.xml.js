@@ -22,6 +22,9 @@ function generateSiteMap() {
     <url>
       <loc>${baseUrl}/privacy-policy</loc>
     </url>
+    <url>
+      <loc>${baseUrl}/spaces</loc>
+     </url>
    </urlset>
  `;
 }
