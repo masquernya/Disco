@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import api from "../../lib/api";
 import s from '../userListCard/userListCard.module.css';
 import styles from "../userListCard/userListCard.module.css";
@@ -8,13 +8,79 @@ import Accounts from "../userListCard/accounts";
 import Buttons from "../userListCard/buttons";
 import Link from "next/link";
 
-export function Space({matrixSpaceId, name, description, invite, imageUrl, is18Plus, memberCount, isManageable, edit}) {
+function EditTags({matrixSpaceId, newTags, setNewTags}) {
+  const [tag, setTag] = useState('');
+  const [addingTag, setAddingTag] = useState(false);
+
+  const addTag = () => {
+    if (addingTag)
+      return;
+    setAddingTag(true);
+
+    api.request(`/api/matrixspace/Tag`, {
+      method: 'PUT',
+      body: {
+        matrixSpaceId,
+        tag: tag,
+      }
+    }).then((data) => {
+      setAddingTag(false);
+      setTag('');
+      if (newTags.find(x => x.matrixSpaceTagId === data.body.matrixSpaceTagId))
+        return;
+
+      setNewTags([... newTags, data.body]);
+    }).catch(err => {
+      alert(err.message);
+      setAddingTag(false);
+    })
+  }
+  return <div>
+    <div className={styles.tagContainer}>
+      {
+        newTags.map(v => {
+          return <div className={styles.tag} onClick={e => {
+            if (addingTag)
+              return;
+            setAddingTag(true);
+            api.request(`/api/matrixspace/Tag`, {
+              method: 'DELETE',
+              body: {
+                matrixSpaceId,
+                tagId: v.matrixSpaceTagId,
+              }
+            }).then(() => {
+              setNewTags(newTags.filter(x => x.matrixSpaceTagId !== v.matrixSpaceTagId))
+            }).finally(() => {
+              setAddingTag(false);
+            })
+          }}>{v.displayTag}</div>
+        })
+      }
+    </div>
+    <div className={styles.addTagContainer}>
+      <input placeholder='Add a Tag' type='text' className={styles.tagInput} value={tag} onChange={e => {
+        setTag(e.currentTarget.value);
+      }} onKeyDown={e => {
+        if (e.key === 'Enter') {
+          addTag();
+        }
+      }} />
+      <button className={styles.addTagButton} onClick={() => {
+        addTag();
+      }}>Add</button>
+    </div>
+  </div>
+}
+
+export function Space({matrixSpaceId, name, description, invite, imageUrl, is18Plus, memberCount, isManageable, edit, tags}) {
   const [editMode, setEditMode] = useState(false);
 
   const [editDescription, setEditDescription] = useState(description);
   const [edit18Plus, setEdit18Plus] = useState(is18Plus);
+  const [newTags, setNewTags] = useState(tags);
 
-  const isDirty = (editDescription !== description) || (edit18Plus !== is18Plus);
+  const isDirty = (editDescription !== description) || (edit18Plus !== is18Plus) || (newTags !== tags);
 
   return <div className={styles.card + ' h-100'}>
     <div className={styles.cardPadding} />
@@ -24,19 +90,16 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
           <img className={styles.image + ' sr-none'} src={imageUrl} />
         </div>
       </div>
-      <div className={styles.cardHeaderItem + ' ms-4'}>
+      <div className={styles.cardHeaderItem + ' ms-4 w-100'}>
         <h3 className={styles.displayName}>{name}</h3>
-        <p className={styles.username}>
-          <a href={`https://matrix.to/#/${encodeURI(invite)}`}>{invite}</a>
-        </p>
         <p className={styles.username}>{memberCount.toLocaleString()} Members</p>
         {
           editMode ? <div className='form-check'>
-            <label>Is 18 Plus?</label>
+            <label>Is 18+?</label>
             <input className='form-check-input' type='checkbox' checked={edit18Plus} onChange={e => {
               setEdit18Plus(!edit18Plus);
             }} />
-          </div> : null
+          </div> : <a className={styles.joinButton} href={`https://matrix.to/#/${encodeURI(invite)}`} target='_blank'>Join</a>
         }
       </div>
     </div>
@@ -50,7 +113,13 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
       }
 
       <p className={styles.heading + ' text-uppercase'}>Tags</p>
-      <Tags tags={[]} />
+      {
+        editMode ? <EditTags newTags={newTags} setNewTags={setNewTags} matrixSpaceId={matrixSpaceId} /> : <Tags tags={tags.map(v => {
+          return {
+            displayTag: v.displayTag,
+          }
+        })} />
+      }
 
       {
         isManageable ? <button className={styles.buttonAccept + " mt-4"} onClick={() => {
@@ -72,7 +141,7 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
               edit({
                 is18Plus: edit18Plus,
                 description: editDescription,
-              });
+              }, newTags);
             }).catch(err => {
               alert(err.message);
             })
@@ -121,12 +190,13 @@ export default function MatrixSpaces() {
         }).map(spaceInfo => {
           const {space, tags} = spaceInfo;
           return <div key={space.invite} className='col-12 col-lg-6'>
-            <Space matrixSpaceId={space.matrixSpaceId} name={space.name} invite={space.invite} description={space.description} imageUrl={spaceInfo.imageUrl} is18Plus={space.is18Plus} memberCount={space.memberCount} isManageable={manageableSpaces && manageableSpaces.find(x => x.matrixSpaceId === space.matrixSpaceId)} edit={(newProps) => {
+            <Space tags={tags} matrixSpaceId={space.matrixSpaceId} name={space.name} invite={space.invite} description={space.description} imageUrl={spaceInfo.imageUrl} is18Plus={space.is18Plus} memberCount={space.memberCount} isManageable={manageableSpaces && manageableSpaces.find(x => x.matrixSpaceId === space.matrixSpaceId)} edit={(newProps, newTags) => {
               for (let i = 0; i < spaces.length; i++) {
                 const curr = spaces[i];
                 if (curr.space.matrixSpaceId === space.matrixSpaceId) {
                   // apply edits
                   curr.space = {...curr.space, ...newProps}
+                  curr.tags = newTags;
                 }
               }
               setSpaces([...spaces]);
