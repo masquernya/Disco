@@ -7,6 +7,7 @@ import Tags from "../userListCard/tags";
 import Accounts from "../userListCard/accounts";
 import Buttons from "../userListCard/buttons";
 import Link from "next/link";
+import config from "next/config";
 
 function EditTags({matrixSpaceId, newTags, setNewTags}) {
   const [tag, setTag] = useState('');
@@ -173,7 +174,7 @@ export default function MatrixSpaces(props) {
     <div className='row mt-4'>
       <div className='col-12'>
         <h3 className='fw-bold text-uppercase'>Spaces</h3>
-        <p>Discover matrix spaces to find new friends and discuss various topics.</p>
+        <p>Discover matrix spaces to find new friends and discuss various topics. To add your space, invite our bot, {config().publicRuntimeConfig.matrixBotUsername}, to your space.</p>
         <div className='form-check'>
           <label htmlFor='show-18-plus'>Show 18+</label>
           <input id='show-18-plus' className=' form-check-input' type='checkbox' checked={show18Plus} onChange={e => {
