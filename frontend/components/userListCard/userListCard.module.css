@@ -256,3 +256,46 @@
     border: none;
     outline: none;
 }
+
+.joinButton {
+    width: 100%;
+    display: block;
+    text-align: center;
+    color: #fff;
+    background: linear-gradient(90deg, rgba(39,15,130,1) 0%, rgba(19,6,65,1) 100%);
+    margin-top: 12px;
+    text-decoration: none;
+    padding: 12px 0;
+    border-radius: 14px;
+    font-weight: 600;
+    transition: color .2s;
+    border: 1px solid #08031a;
+}
+
+.joinButton:hover {
+    color: rgba(255,255,255,0.5);
+    transition: color .2s;
+}
+
+.tagInput {
+    color: #fff;
+    padding: 4px 12px;
+}
+
+.addTagContainer {
+    margin-top: 12px;
+}
+
+.tagInput:active, .tagInput, .tagInput:focus {
+    outline: none;
+}
+
+.addTagButton {
+    background-color: #270f82;
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    margin-left: 12px;
+}
