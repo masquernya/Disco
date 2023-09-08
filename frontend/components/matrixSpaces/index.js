@@ -152,22 +152,23 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
   </div>
 }
 
-export default function MatrixSpaces() {
-  const [spaces, setSpaces] = useState(null);
+export default function MatrixSpaces(props) {
+  const [spaces, setSpaces] = useState(props.spaces);
   const [manageableSpaces, setManageableSpaces] = useState(null);
   const [show18Plus, setShow18Plus] = useState(false);
 
   useEffect(() => {
-    api.request('/api/matrixspace/AllSpaces').then(spaces => {
-      setSpaces(spaces.body);
-    });
+    if (!props.spaces) {
+      api.request('/api/matrixspace/AllSpaces').then(spaces => {
+        setSpaces(spaces.body);
+      });
+    }
 
     api.request('/api/matrixspace/ManagedSpaces').then(managed => {
       setManageableSpaces(managed.body);
     })
-  }, []);
+  }, [props.spaces]);
 
-  console.log('spaces',spaces);
   return <div className='container min-vh-100'>
     <div className='row mt-4'>
       <div className='col-12'>
