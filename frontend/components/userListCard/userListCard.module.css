@@ -1,12 +1,10 @@
 .card {
-    border: 2px solid #130641;
     background: #08031a;
     /*padding: 20px;*/
     /*background: #130641;*/
     color: #fff;
     border-radius: 14px;
     margin-top: 20px;
-    animation: ImageFadeIn .5s ease-out;
     overflow: hidden;
 }
 
@@ -24,36 +22,15 @@
     margin: 0 auto;
 }
 
-
-@keyframes ImageFadeIn {
-    0% {
-        transform: scale(.99);
-        opacity: .1;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
 .image {
-    /*border: 2px solid #130641;*/
     display: block;
     height: 128px;
     width: 128px;
     border-radius: 30px;
     margin: 0 0 0 0;
     opacity: 1;
-    transition: height .3s, width .3s, margin .3s, opacity .3s;
 }
 
-.imageWrapper:hover > .image {
-    opacity: 0.7;
-    transition: height .3s, width .3s, margin .3s, opacity .3s;
-    height: calc(128px - 10px);
-    width: calc(128px - 10px);
-    margin: 5px;
-}
 
 .cardPadding {
     height: 20px;
@@ -156,7 +133,6 @@
 .accountDisplay {
     color: #fff;
     font-weight: 600;
-    border: 2px solid #130641;
     padding: 0 10px;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
@@ -262,14 +238,13 @@
     display: block;
     text-align: center;
     color: #fff;
-    background: linear-gradient(90deg, rgba(39,15,130,1) 0%, rgba(19,6,65,1) 100%);
     margin-top: 12px;
     text-decoration: none;
     padding: 12px 0;
     border-radius: 14px;
     font-weight: 600;
     transition: color .2s;
-    border: 1px solid #08031a;
+    background-color: #270f82;
 }
 
 .joinButton:hover {
