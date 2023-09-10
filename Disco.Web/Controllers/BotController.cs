@@ -72,6 +72,6 @@ public class BotController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.name))
             throw new ArgumentException("Null or empty", nameof(request.name));
         
-        await spaceService.AddOrUpdateMatrixSpace(request.invite, request.name, request.description, request.memberCount, request.avatar, request.admins);
+        await spaceService.AddOrUpdateMatrixSpace(request.invite, request.name, request.description, request.memberCount, request.avatar, request.is18Plus, request.admins);
     }
 }

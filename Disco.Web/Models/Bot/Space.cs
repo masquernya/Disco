@@ -11,6 +11,10 @@ public class AddOrUpdateSpaceRequest
     /// </summary>
     public string? avatar { get; set; }
     /// <summary>
+    /// Whether the space is 18+ or not
+    /// </summary>
+    public bool is18Plus { get; set; }
+    /// <summary>
     /// Array of matrix user IDs with ban permission
     /// </summary>
     public string[]? admins { get; set; }

@@ -44,7 +44,7 @@ public class MatrixSpaceService : IMatrixSpaceService
         return userUploadedImageId;
     }
 
-    public async Task<MatrixSpace> AddOrUpdateMatrixSpace(string invite, string name, string? description, int memberCount, string? avatar,
+    public async Task<MatrixSpace> AddOrUpdateMatrixSpace(string invite, string name, string? description, int memberCount, string? avatar, bool is18Plus,
         string[]? admins)
     {
         await using var ctx = new DiscoContext();
@@ -107,6 +107,7 @@ public class MatrixSpaceService : IMatrixSpaceService
             imageId = null,
             createdAt = DateTime.UtcNow,
             updatedAt = DateTime.UtcNow,
+            is18Plus = is18Plus,
         });
         await ctx.SaveChangesAsync();
         if (avatar != null)
