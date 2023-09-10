@@ -123,7 +123,7 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
       }
 
       {
-        isManageable ? <button className={styles.buttonAccept + " mt-4"} onClick={() => {
+        isManageable ? <button className={"btn btn-primary mt-4"} onClick={() => {
           setEditMode(!editMode);
           if (editMode && isDirty) {
             let promises = [];
