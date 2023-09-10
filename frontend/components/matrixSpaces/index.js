@@ -92,8 +92,12 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
         </div>
       </div>
       <div className={styles.cardHeaderItem + ' ms-4 w-100'}>
-        <h3 className={styles.displayName}>{name}</h3>
-        <p className={styles.username}>{memberCount.toLocaleString()} Members</p>
+        <h3 className={styles.displayName}>
+          <span>{name}</span>
+        </h3>
+        <p className={styles.username}>
+          <span>{memberCount.toLocaleString()} Members</span>
+        </p>
         {
           editMode ? <div className='form-check'>
             <label>Is 18+?</label>
@@ -156,7 +160,7 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
 export default function MatrixSpaces(props) {
   const [spaces, setSpaces] = useState(props.spaces);
   const [manageableSpaces, setManageableSpaces] = useState(null);
-  const [show18Plus, setShow18Plus] = useState(false);
+  const [show18Plus, setShow18Plus] = useState(true);
 
   useEffect(() => {
     if (!props.spaces) {
@@ -167,29 +171,33 @@ export default function MatrixSpaces(props) {
 
     api.request('/api/matrixspace/ManagedSpaces').then(managed => {
       setManageableSpaces(managed.body);
+    }).catch(err => {
+      // probably not logged in. todo: alert?
     })
   }, [props.spaces]);
 
   return <div className='container min-vh-100'>
-    <div className='row mt-4'>
-      <div className='col-12'>
-        <h3 className='fw-bold text-uppercase'>Spaces</h3>
-        <p>Discover matrix spaces to find new friends and discuss various topics. To add your space, invite our bot, {config().publicRuntimeConfig.matrixBotUsername}, to your space.</p>
-        <div className='form-check'>
-          <label htmlFor='show-18-plus'>Show 18+</label>
-          <input id='show-18-plus' className=' form-check-input' type='checkbox' checked={show18Plus} onChange={e => {
-            setShow18Plus(!show18Plus);
-          }} />
+    {
+      props.header !== false ? <div className='row mt-4'>
+        <div className='col-12'>
+          <h3 className='fw-bold text-uppercase'>Spaces</h3>
+          <p>Discover matrix spaces to find new friends and discuss various topics. To add your space, invite our bot, {config().publicRuntimeConfig.matrixBotUsername}, to your space.</p>
+          <div className='form-check'>
+            <label htmlFor='show-18-plus'>Show 18+</label>
+            <input id='show-18-plus' className=' form-check-input' type='checkbox' checked={show18Plus} onChange={e => {
+              setShow18Plus(!show18Plus);
+            }} />
+          </div>
         </div>
-      </div>
-    </div>
+      </div> : null
+    }
 
     <div className='row'>
       {
         spaces ? spaces.filter(x => {
           if (show18Plus) return true;
           return !x.space.is18Plus;
-        }).map(spaceInfo => {
+        }).slice(0, (props.limit || 1000)).map(spaceInfo => {
           const {space, tags} = spaceInfo;
           return <div key={space.invite} className='col-12 col-lg-6'>
             <Space tags={tags} matrixSpaceId={space.matrixSpaceId} name={space.name} invite={space.invite} description={space.description} imageUrl={spaceInfo.imageUrl} is18Plus={space.is18Plus} memberCount={space.memberCount} isManageable={manageableSpaces && manageableSpaces.find(x => x.matrixSpaceId === space.matrixSpaceId)} edit={(newProps, newTags) => {
@@ -205,6 +213,13 @@ export default function MatrixSpaces(props) {
             }} />
           </div>
         }) : null
+      }
+      {
+        props.showMore ? <div className='col-12'>
+          <div className='d-flex justify-content-center'>
+            <Link href={'/spaces'} className={'btn btn-primary ps-4 pe-4 ' + s.showMore}>Show More</Link>
+          </div>
+        </div> : null
       }
     </div>
   </div>

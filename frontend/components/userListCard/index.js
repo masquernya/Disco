@@ -31,8 +31,12 @@ export default function UserListCard(props) {
         </div>
       </div>
       <div className={styles.cardHeaderItem + ' ms-4'}>
-        <h3 className={styles.displayName}>{props.user.displayName}</h3>
-        <p className={styles.username}>@{props.user.username}</p>
+        <h3 className={styles.displayName}>
+          <span>{props.user.displayName}</span>
+        </h3>
+        <p className={styles.username}>
+          <span>@{props.user.username}</span>
+        </p>
         <PersonalInfo age={props.user.age} gender={props.user.gender} pronouns={props.user.pronouns} />
       </div>
     </div>

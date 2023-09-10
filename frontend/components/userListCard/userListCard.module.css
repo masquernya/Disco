@@ -30,16 +30,7 @@
     border-radius: 30px;
     margin: 0 0 0 0;
     opacity: 1;
-}
-
-.cardPadding, .cardHeader {
-    background-color: #270f82;
-}
-
-.cardPadding {
-    height: 20px;
-    display: block;
-    width: 100%;
+    border: 4px solid #130641;
 }
 
 .displayName {
@@ -47,6 +38,11 @@
     margin-top: .1rem;
     font-weight: 600;
     margin-bottom: 0;
+}
+
+.displayName > span, .username > span {
+    background: #130641;
+    padding: 0 6px;
 }
 
 .username {
@@ -207,11 +203,18 @@
 
 .cardHeader {
     display: flex;
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-bottom: 20px;
     color: #fff;
     margin-bottom: 12px;
+    /*background-color: #270f82;*/
+    padding: 20px;
+    background:
+            radial-gradient(farthest-side at -33.33% 50%,#0000 52%,#08031a 54% 57%,#0000 59%) 0 calc(128px/2),
+            radial-gradient(farthest-side at 50% 133.33%,#0000 52%,#08031a 54% 57%,#0000 59%) calc(128px/2) 0,
+            radial-gradient(farthest-side at 133.33% 50%,#0000 52%,#08031a 54% 57%,#0000 59%),
+            radial-gradient(farthest-side at 50% -33.33%,#0000 52%,#08031a 54% 57%,#0000 59%),
+            #270f82;
+    background-size: calc(128px/4.667) 128px,128px calc(128px/4.667);
+
 }
 .cardHeaderItem {
 
@@ -266,4 +269,8 @@
     border-radius: 6px;
     padding: 4px 12px;
     margin-left: 12px;
+}
+
+.showMore {
+    margin-top: 84px;
 }
