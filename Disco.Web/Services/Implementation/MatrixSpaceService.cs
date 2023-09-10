@@ -114,15 +114,20 @@ public class MatrixSpaceService : IMatrixSpaceService
             result.Entity.imageId = await UploadImageForMatrix(ctx, avatar, result.Entity.matrixSpaceId);
             await ctx.SaveChangesAsync();
         }
-        foreach (var admin in admins)
+
+        if (admins != null && admins.Length > 0)
         {
-            await ctx.matrixSpaceAdmins.AddAsync(new MatrixSpaceAdmin()
+            foreach (var admin in admins)
             {
-                matrixSpaceId = result.Entity.matrixSpaceId,
-                matrixUserId = admin,
-                createdAt = DateTime.UtcNow,
-                updatedAt = DateTime.UtcNow,
-            });
+                await ctx.matrixSpaceAdmins.AddAsync(new MatrixSpaceAdmin()
+                {
+                    matrixSpaceId = result.Entity.matrixSpaceId,
+                    matrixUserId = admin,
+                    createdAt = DateTime.UtcNow,
+                    updatedAt = DateTime.UtcNow,
+                });
+            }
+            await ctx.SaveChangesAsync();
         }
 
         return result.Entity;
