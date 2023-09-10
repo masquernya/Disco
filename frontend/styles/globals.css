@@ -40,3 +40,13 @@ input, textarea, select, select > option, .form-control {
     transition: opacity .2s;
     color: #fff;
 }
+
+a {
+    color: #fff;
+    transition: color .2s;
+    text-decoration: none;
+}
+a:hover {
+    color: rgba(255,255,255,.5);
+    transition: color .2s;
+}
