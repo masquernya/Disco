@@ -100,7 +100,7 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
             <input className='form-check-input' type='checkbox' checked={edit18Plus} onChange={e => {
               setEdit18Plus(!edit18Plus);
             }} />
-          </div> : <a className={styles.joinButton} href={`https://matrix.to/#/${encodeURI(invite)}`} target='_blank'>Join</a>
+          </div> : <a className={'btn btn-primary-alt text-center d-block w-100 ' + styles.joinButton} href={`https://matrix.to/#/${encodeURI(invite)}`} target='_blank'>Join</a>
         }
       </div>
     </div>
