@@ -13,6 +13,7 @@ input, textarea, select, select > option, .form-control {
     font-weight: 600;
 }
 
+/* Primary */
 .btn.btn-primary, button.btn.btn-primary, a.btn.btn-primary {
     background-color: #270f82;
     border: none;
@@ -23,4 +24,19 @@ input, textarea, select, select > option, .form-control {
     background-color: #270f82;
     opacity: .8;
     transition: opacity .2s;
+}
+
+/* Primary Alt*/
+.btn.btn-primary-alt, button.btn.btn-primary-alt, a.btn.btn-primary-alt {
+    background-color: #130641;
+    border: none;
+    transition: opacity .2s;
+    color: #fff;
+}
+
+.btn.btn-primary-alt:hover, button.btn.btn-primary-alt:hover, a.btn.btn-primary-alt:hover {
+    background-color: #130641;
+    opacity: .8;
+    transition: opacity .2s;
+    color: #fff;
 }
