@@ -9,3 +9,18 @@ input, textarea, select, select > option, .form-control {
     border: none;
 }
 
+.btn, button.btn, a.btn {
+    font-weight: 600;
+}
+
+.btn.btn-primary, button.btn.btn-primary, a.btn.btn-primary {
+    background-color: #270f82;
+    border: none;
+    transition: opacity .2s;
+}
+
+.btn.btn-primary:hover, button.btn.btn-primary:hover, a.btn.btn-primary:hover {
+    background-color: #270f82;
+    opacity: .8;
+    transition: opacity .2s;
+}
