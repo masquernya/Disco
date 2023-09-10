@@ -78,6 +78,8 @@ public class MatrixSpaceService : IMatrixSpaceService
                         {
                             matrixSpaceId = exists.matrixSpaceId,
                             matrixUserId = admin,
+                            createdAt = DateTime.UtcNow,
+                            updatedAt = DateTime.UtcNow,
                         });
                     }
                 }
@@ -118,6 +120,8 @@ public class MatrixSpaceService : IMatrixSpaceService
             {
                 matrixSpaceId = result.Entity.matrixSpaceId,
                 matrixUserId = admin,
+                createdAt = DateTime.UtcNow,
+                updatedAt = DateTime.UtcNow,
             });
         }
 
