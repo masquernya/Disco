@@ -8,6 +8,7 @@ import Accounts from "../userListCard/accounts";
 import Buttons from "../userListCard/buttons";
 import Link from "next/link";
 import config from "next/config";
+import {getUser} from "../../lib/globalState";
 
 function EditTags({matrixSpaceId, newTags, setNewTags}) {
   const [tag, setTag] = useState('');
@@ -160,7 +161,8 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
 export default function MatrixSpaces(props) {
   const [spaces, setSpaces] = useState(props.spaces);
   const [manageableSpaces, setManageableSpaces] = useState(null);
-  const [show18Plus, setShow18Plus] = useState(true);
+  const [show18Plus, setShow18Plus] = useState(false);
+  const [showSet18Plus, setShowSet18Plus] = useState(false);
 
   useEffect(() => {
     if (!props.spaces) {
@@ -169,12 +171,25 @@ export default function MatrixSpaces(props) {
       });
     }
 
-    api.request('/api/matrixspace/ManagedSpaces').then(managed => {
-      setManageableSpaces(managed.body);
-    }).catch(err => {
-      // probably not logged in. todo: alert?
-    })
   }, [props.spaces]);
+
+  useEffect(() => {
+    const user = getUser();
+    if (user) {
+      if (user.isLoggedIn) {
+        if (user.data && user.data.age >= 18) {
+          setShowSet18Plus(true);
+        }
+        api.request('/api/matrixspace/ManagedSpaces').then(managed => {
+          setManageableSpaces(managed.body);
+        }).catch(err => {
+          // probably not logged in. todo: alert?
+        })
+      }else{
+        setShowSet18Plus(true);
+      }
+    }
+  }, [getUser()]);
 
   return <div className='container min-vh-100'>
     {
@@ -182,12 +197,12 @@ export default function MatrixSpaces(props) {
         <div className='col-12'>
           <h3 className='fw-bold text-uppercase'>Spaces</h3>
           <p>Discover matrix spaces to find new friends and discuss various topics. To add your space, invite our bot, {config().publicRuntimeConfig.matrixBotUsername}, to your space.</p>
-          <div className='form-check'>
+          {showSet18Plus ? <div className='form-check'>
             <label htmlFor='show-18-plus'>Show 18+</label>
             <input id='show-18-plus' className=' form-check-input' type='checkbox' checked={show18Plus} onChange={e => {
               setShow18Plus(!show18Plus);
             }} />
-          </div>
+          </div> : null}
         </div>
       </div> : null
     }
