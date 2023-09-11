@@ -50,3 +50,22 @@ a:hover {
     color: rgba(255,255,255,.5);
     transition: color .2s;
 }
+
+nav > ul.pagination > li > a {
+    background-color: #270f82;
+    color: #fff;
+    border: 1px solid #130641;
+}
+
+nav > ul.pagination > li > a.disabled {
+    background-color: #270f82;
+    color: rgba(255,255,255,.2);
+    border: 1px solid #130641;
+}
+
+nav > ul.pagination > li > a:hover, nav > ul.pagination > li > a:active, nav > ul.pagination > li > a:focus {
+    background-color: #270f82;
+    color: rgba(255,255,255,.2);
+    outline: none;
+    border: 1px solid #130641;
+}
