@@ -10,6 +10,8 @@ import {
 import * as path from "path";
 import config from "./config";
 import CommandHandler from "./commands/handler";
+import Jobs from "./jobs/jobs";
+import DiscoApi from "./api/api";
 
 // First things first: let's make the logs a bit prettier.
 LogService.setLogger(new RichConsoleLogger());
@@ -43,9 +45,14 @@ LogService.info("index", "Bot starting...");
         AutojoinRoomsMixin.setupOnClient(client);
     }
 
+    const api = new DiscoApi();
+
     // Prepare the command handler
-    const commands = new CommandHandler(client);
+    const commands = new CommandHandler(client, api);
     await commands.start();
+
+    const job = new Jobs(client, api);
+    await job.start();
 
     LogService.info("index", "Starting sync...");
     await client.start(); // This blocks until the bot is killed

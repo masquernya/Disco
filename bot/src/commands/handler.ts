@@ -3,8 +3,8 @@ import { runHelloCommand } from "./hello";
 import * as htmlEscape from "escape-html";
 import { runVerifyCommand } from "./verify";
 import { runResetPasswordCommand } from "./resetPassword";
-import { runAddSpace } from "./addSpace";
 import config from "../config";
+import DiscoApi from "../api/api";
 
 // The prefix required to trigger the bot. The bot will also respond
 // to being pinged directly.
@@ -19,7 +19,7 @@ export default class CommandHandler {
     private userId: string;
     private localpart: string;
 
-    constructor(private client: MatrixClient) {
+    constructor(private client: MatrixClient, private discoApi: DiscoApi) {
     }
 
     public async start() {
@@ -110,27 +110,7 @@ export default class CommandHandler {
         const minimumRoleForAddToSite = powerLevelsEvent.ban || 100;
         const adminUserIds = Object.entries(powerLevelsEvent.users).filter(v => v[1] >= minimumRoleForAddToSite).map(v => v[0]);
 
-        const apiRequest = {
-            name: spaceInfo.name,
-            description: spaceInfo.topic,
-            memberCount: spaceInfo.num_joined_members,
-            invite: spaceInfo.canonical_alias,
-            avatar: spaceInfo.avatar_url,
-            admins: adminUserIds,
-        };
-        LogService.info('InviteHandler', 'apiRequest', apiRequest);
-        const result = await fetch(config.apiBaseUrl + '/api/Bot/AddOrUpdateSpace', {
-            method: 'POST',
-            body: JSON.stringify(apiRequest),
-            headers: {
-                'content-type': 'application/json',
-                'BotAuthorization': config.apiKey,
-            },
-        });
-        if (result.status !== 200) {
-            LogService.warn('InviteHandler', 'Error adding space', roomId, result.status, await result.text());
-        }
-        await this.client.leaveRoom(roomId, 'Added to site');
+        await this.discoApi.uploadSpace(spaceInfo.name, spaceInfo.topic, spaceInfo.num_joined_members, spaceInfo.canonical_alias, spaceInfo.avatar_url, false, adminUserIds);
     }
 
     private async onMessage(roomId: string, ev: any) {
@@ -157,8 +137,6 @@ export default class CommandHandler {
                 // return runVerifyCommand(roomId, event, args, this.client);
             }else if (args[0] === 'resetpassword') {
                 return runResetPasswordCommand(roomId, event, args, this.client);
-            }else if (args[0] === 'addspace') {
-                return runAddSpace(roomId, event, args, this.client);
             }else{
                 LogService.error('CommandHandler', 'unknown command: ' + args[0]);
             }
