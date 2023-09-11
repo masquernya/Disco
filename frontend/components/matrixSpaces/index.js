@@ -75,7 +75,7 @@ function EditTags({matrixSpaceId, newTags, setNewTags}) {
   </div>
 }
 
-export function Space({matrixSpaceId, name, description, invite, imageUrl, is18Plus, memberCount, isManageable, edit, tags}) {
+export function Space({matrixSpaceId, name, description, invite, imageUrl, is18Plus, memberCount, isManageable, edit, tags, isAdmin}) {
   const [editMode, setEditMode] = useState(false);
 
   const [editDescription, setEditDescription] = useState(description);
@@ -154,6 +154,20 @@ export function Space({matrixSpaceId, name, description, invite, imageUrl, is18P
           }
         }}>{editMode ? (isDirty ? 'Save Changes' : 'Close') : 'Edit'}</button> : null
       }
+      {
+        isAdmin ? <button className='btn btn-outline-danger mt-4' onClick={() => {
+          if (prompt('Type "yes" to ban and delete this space.') !== 'yes') {
+            return;
+          }
+          api.request('/api/matrixspace/Ban?matrixSpaceId=' + matrixSpaceId, {
+            method: 'POST',
+          }).then(() => {
+            window.location.reload();
+          }).catch(err => {
+            alert(err.message);
+          });
+        }}>Delete</button> : null
+      }
     </div>
   </div>
 }
@@ -190,6 +204,41 @@ export default function MatrixSpaces(props) {
       }
     }
   }, [getUser()]);
+  const limit = props.limit || 100;
+  const [offset, setOffset] = useState(0);
+  const [query, setQuery] = useState('');
+
+  const queryLower = query && query.toLowerCase();
+  const matchingFilter = spaces ? spaces.filter(x => {
+    if (show18Plus) return true;
+    return !x.space.is18Plus;
+  }).filter(x => {
+    if (queryLower) {
+      if (x.space.name.toLowerCase().includes(queryLower)) {
+        x._searchPriority = 1;
+        return true;
+      }else if ((x.space.description || '').toLowerCase().includes(queryLower)) {
+        x._searchPriority = 2;
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }).sort((a,b) => {
+    if (queryLower) {
+      return a._searchPriority - b._searchPriority;
+    }
+    if (props.sort) {
+      return props.sort(a, b);
+    }
+    return b.space.memberCount - a.space.memberCount;
+  }) : null;
+
+  const canGoPrevious = offset > 0;
+  const canGoNext = matchingFilter && offset + limit < matchingFilter.length;
+
+  const currentPage = Math.floor(offset / limit) + 1;
+  const nextPage = currentPage + 1;
 
   return <div className='container min-vh-100'>
     {
@@ -204,17 +253,42 @@ export default function MatrixSpaces(props) {
             }} />
           </div> : null}
         </div>
+
+        <div className='col-12'>
+          <p className='text-start mt-4 fw-bold'>{matchingFilter.length.toLocaleString()} Spaces Matching Filters</p>
+
+          <input type='text' className='form-control mb-4' placeholder='Search' value={query} onChange={e => {
+            setQuery(e.currentTarget.value);
+          }} />
+
+          <nav>
+            <ul className="pagination">
+              <li className="page-item">
+                <a className={'page-link ' + (!canGoPrevious ? 'disabled' : '')} href="#" onClick={() => {
+                  if (!canGoPrevious)
+                    return;
+                  setOffset(offset - limit);
+                }}>Previous</a>
+              </li>
+              <li className="page-item"><a className="page-link disabled" href="#">{currentPage}</a></li>
+              <li className="page-item">
+                <a className={'page-link ' + (!canGoNext ? 'disabled' : '')} href="#" onClick={() => {
+                  if (!canGoNext)
+                    return;
+                  setOffset(offset + limit);
+                }}>Next</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
       </div> : null
     }
 
     <div className='row'>
       {
-        spaces ? spaces.filter(x => {
-          if (show18Plus) return true;
-          return !x.space.is18Plus;
-        }).slice(0, (props.limit || 1000)).map(spaceInfo => {
+        spaces && matchingFilter ? matchingFilter.slice(offset, offset + limit).map(spaceInfo => {
           const {space, tags} = spaceInfo;
-          return <div key={space.invite} className='col-12 col-lg-6'>
+          return <div key={space.invite} className='col-12 col-lg-6 mb-4'>
             <Space tags={tags} matrixSpaceId={space.matrixSpaceId} name={space.name} invite={space.invite} description={space.description} imageUrl={spaceInfo.imageUrl} is18Plus={space.is18Plus} memberCount={space.memberCount} isManageable={manageableSpaces && manageableSpaces.find(x => x.matrixSpaceId === space.matrixSpaceId)} edit={(newProps, newTags) => {
               for (let i = 0; i < spaces.length; i++) {
                 const curr = spaces[i];
@@ -225,7 +299,7 @@ export default function MatrixSpaces(props) {
                 }
               }
               setSpaces([...spaces]);
-            }} />
+            }} isAdmin={getUser() && getUser().data && getUser().data.isAdmin} />
           </div>
         }) : null
       }
