@@ -347,6 +347,7 @@ public class UserUploadedImage
     public int sizeX { get; set; }
     public int sizeY { get; set; }
     public long fileSize { get; set; }
+    public string originalUrl { get; set; }
 
     public string extension
     {
@@ -413,6 +414,7 @@ public class MatrixSpace
     public long? imageId { get; set; }
     public string invite { get; set; }
     public bool is18Plus { get; set; }
+    public bool isBanned { get; set; }
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
 }
