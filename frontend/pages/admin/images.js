@@ -16,8 +16,8 @@ export default function Images() {
   }, []);
 
   const toggleImage = (image, status) => {
-    setImages(images.filter(v => v.userUploadedImageId !== image.userUploadedImageId));
-    api.request('/api/user/' + status, {
+    setImages(images => images.filter(v => v.image.userUploadedImageId !== image.userUploadedImageId));
+    return api.request('/api/user/' + status, {
       method: 'POST',
       body: {
         imageId: image.userUploadedImageId
@@ -45,29 +45,72 @@ export default function Images() {
                 }}>Refresh</button>
               </div>
             </div> : images.map(image => {
-              return <div className='col-12 col-sm-6 col-md-4 col-lg-3' key={image.userUploadedImageId}>
-                <div className='card'>
-                  <img src={image.url} alt='Profile picture' />
+              return <div className='col-12 col-sm-6 col-md-4 col-lg-3 mb-4' key={image.image.userUploadedImageId}>
+                <div className='card bg-secondary h-100'>
+                  <img src={image.image.url} alt='Picture' />
                   <div className='card-body'>
-                    <p>Uploaded by #{image.accountId}</p>
-                    <div className='row'>
-                      <div className='col-6'>
-                        <button className='btn btn-success w-100' onClick={() => {
-                          toggleImage(image, 'ApproveImage');
-                        }}>Approve</button>
-                      </div>
-                      <div className='col-6'>
-                        <button className='btn btn-danger w-100' onClick={() => {
-                          toggleImage(image, 'RejectImage');
-                        }}>Reject</button>
-                      </div>
-                    </div>
+                    <button className='btn btn-success w-100' onClick={() => {
+                      toggleImage(image.image, 'ApproveImage');
+                    }}>Approve</button>
+                    <button className='btn btn-danger w-100 mt-2' onClick={() => {
+                      toggleImage(image.image, 'RejectImage');
+                    }}>Reject</button>
+                    <button className='btn btn-danger w-100 mt-2' onClick={() => {
+                      let promises = [];
+                      for (const account of image.accounts) {
+                        promises.push(api.request('/api/user/BanUser', {
+                          method: 'POST',
+                          body: {
+                            accountId: account.accountId
+                          },
+                        }));
+                      }
+                      for (const space of image.spaces) {
+                        promises.push(api.request('/api/matrixspace/Ban?matrixSpaceId='+space.matrixSpaceId , {
+                          method: 'POST',
+                        }));
+                      }
+                      Promise.all(promises).then(() => {
+                        toggleImage(image.image, 'RejectImage');
+                      }).catch(err => {
+                        alert(err.message);
+                      })
+                    }}>Reject + Ban</button>
+
+
+                    <p className='mt-2'>Uploaded by {image.image.accountId === 1 ? 'Matrix Bot' : '#'+image.image.accountId}</p>
+                    {
+                      image.accounts.map(v => {
+                        return <p className='mb-0' key={v.accountId}>Used by {v.username}</p>
+                      })
+                    }
+                    {
+                      image.spaces.map(v => {
+                        return <p className='mb-0' key={v.matrixSpaceId}>Used in {v.name}</p>
+                      })
+                    }
                   </div>
                 </div>
               </div>
             })
           }
         </div>
+        {
+          images && images.length >= 2 ? <div className='row'>
+            <div className='col-12'>
+              <button className='btn btn-success mt-4' onClick={() => {
+                if (prompt('Type "yes" to approve all ' + images.length + ' images on this page.') !== 'yes') {
+                  return;
+                }
+                (async () => {
+                  for (const image of images) {
+                    await toggleImage(image.image, 'ApproveImage');
+                  }
+                })();
+              }}>Approve Everything</button>
+            </div>
+          </div> : null
+        }
       </div>
     </div>
   </div>
