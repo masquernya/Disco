@@ -1,5 +1,6 @@
 using Disco.Web.Data;
 using Disco.Web.Exceptions.User;
+using Disco.Web.Models;
 using Disco.Web.Models.Matrix;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,30 +18,19 @@ public class MatrixSpaceService : IMatrixSpaceService
         this.cache = cache;
         this.userService = userService; // Temporary hack for uploads.
     }
-    
-    public string GetMatrixProfilePictureUrl(string mxcUrl)
-    {
-        // Returns data like "mxc://matrix.org/1234"
-        var parsed = new Uri(mxcUrl);
-        if (parsed.Scheme != "mxc")
-            throw new Exception("Invalid avatar url");
-        var afterScheme = parsed.Host + parsed.PathAndQuery;
-        var getImageUrl =
-            "https://matrix.org/_matrix/media/r0/thumbnail/"+afterScheme+"?width=256&height=256";
-        var parsedGetImageUrl = new Uri(getImageUrl);
-        if (parsedGetImageUrl.Host != "matrix.org" || parsedGetImageUrl.Scheme != "https")
-            throw new Exception("Unsafe url");
-        return parsedGetImageUrl.ToString();
-    }
 
-    private async Task<long> UploadImageForMatrix(DiscoContext ctx, string avatar, long matrixSpaceId)
+    private async Task<long> UploadImageForMatrix(DiscoContext ctx, string matrixAvatarUrl, long matrixSpaceId)
     {
+        var safeUrl = MatrixHelpers.GetPictureUrlFromMatrixUrl(matrixAvatarUrl);
+        var exists = await ctx.images.FirstOrDefaultAsync(a => a.originalUrl == safeUrl || a.originalUrl == matrixAvatarUrl);
+        if (exists != null)
+            return exists.userUploadedImageId;
         // Fetch image
-        var image = await new HttpClient().GetAsync(avatar);
+        var image = await new HttpClient().GetAsync(safeUrl);
         if (!image.IsSuccessStatusCode)
             throw new Exception("Failed to fetch image");
             
-        var userUploadedImageId = await userService.InsertAndUploadImage(await image.Content.ReadAsStreamAsync(), 1);
+        var userUploadedImageId = await userService.InsertAndUploadImage(await image.Content.ReadAsStreamAsync(), matrixAvatarUrl, 1);
         return userUploadedImageId;
     }
 
@@ -49,9 +39,6 @@ public class MatrixSpaceService : IMatrixSpaceService
     {
         await using var ctx = new DiscoContext();
 
-        if (avatar != null)
-            avatar = GetMatrixProfilePictureUrl(avatar);
-        
         var exists = await ctx.matrixSpaces.FirstOrDefaultAsync(a => a.invite == invite);
         if (exists != null)
         {
@@ -145,7 +132,7 @@ public class MatrixSpaceService : IMatrixSpaceService
             var adminSpaces = await ctx.matrixSpaceAdmins.Where(a => a.matrixUserId == str).ToListAsync();
             foreach (var space in adminSpaces)
             {
-                var spaceData = await ctx.matrixSpaces.FirstOrDefaultAsync(a => a.matrixSpaceId == space.matrixSpaceId);
+                var spaceData = await ctx.matrixSpaces.FirstOrDefaultAsync(a => a.matrixSpaceId == space.matrixSpaceId && a.isBanned);
                 if (spaceData != null)
                     all.Add(spaceData);
             }
@@ -163,7 +150,7 @@ public class MatrixSpaceService : IMatrixSpaceService
     {
         await using var ctx = new DiscoContext();
         
-        var spaces = await ctx.matrixSpaces.ToListAsync();
+        var spaces = await ctx.matrixSpaces.Where(x => !x.isBanned).ToListAsync();
         var spaceIds = spaces.Select(a => a.matrixSpaceId).ToList();
         var tags = await ctx.matrixSpaceTags.Where(a => spaceIds.Contains(a.matrixSpaceId)).ToListAsync();
         
@@ -234,6 +221,16 @@ public class MatrixSpaceService : IMatrixSpaceService
             throw new ArgumentException("Tag not found", nameof(tagId));
         
         ctx.matrixSpaceTags.Remove(tag);
+        await ctx.SaveChangesAsync();
+    }
+
+    public async Task BanSpace(long matrixSpaceId)
+    {
+        await using var ctx = new DiscoContext();
+        var space = await ctx.matrixSpaces.FirstOrDefaultAsync(a => a.matrixSpaceId == matrixSpaceId);
+        if (space == null)
+            throw new ArgumentException("Space not found", nameof(matrixSpaceId));
+        space.isBanned = true;
         await ctx.SaveChangesAsync();
     }
 }

@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Disco.Web.Data;
 using Disco.Web.Exceptions.Matrix;
 using Disco.Web.Exceptions.User;
+using Disco.Web.Models;
 using Disco.Web.Models.User;
 using Isopoh.Cryptography.Argon2;
 using Microsoft.EntityFrameworkCore;
@@ -642,16 +643,7 @@ public class UserService : IUserService
             return null;
         
         // Returns data like "mxc://matrix.org/XTuYJiMVIgfVHcMikXQSerEL"
-        var parsed = new Uri(jsonBody.avatarUrl);
-        if (parsed.Scheme != "mxc")
-            throw new Exception("Invalid avatar url");
-        var afterScheme = parsed.Host + parsed.PathAndQuery;
-        var getImageUrl =
-            "https://matrix.org/_matrix/media/r0/thumbnail/"+afterScheme+"?width=256&height=256";
-        var parsedGetImageUrl = new Uri(getImageUrl);
-        if (parsedGetImageUrl.Host != "matrix.org" || parsedGetImageUrl.Scheme != "https")
-            throw new Exception("Unsafe url");
-        return parsedGetImageUrl.ToString();
+        return jsonBody.avatarUrl;
     }
 
     public async Task DeleteMatrix(long accountId)
@@ -673,7 +665,7 @@ public class UserService : IUserService
         return Convert.ToHexString(hash).ToLowerInvariant().Replace("-", "");
     }
 
-    public async Task<long> InsertAndUploadImage(Stream rawImageStream, long accountId)
+    public async Task<long> InsertAndUploadImage(Stream rawImageStream, string originalUrl, long accountId)
     {
         const int profileImageResolution = 256; // 256x256 is hard coded in a lot of places. don't change this.
         var imageStream = new MemoryStream(1024 * 1024 * 8); // Limit to 8mb. We'll resize which will make the final image considerably smaller, but we still don't want to DOS ourselves if we get too many images.
@@ -737,6 +729,7 @@ public class UserService : IUserService
             status = ImageStatus.AwaitingApproval,
             updatedAt = DateTime.UtcNow,
             accountId = accountId,
+            originalUrl = originalUrl,
         });
         await ctx.SaveChangesAsync();
         return dbImage.Entity.userUploadedImageId;
@@ -769,7 +762,8 @@ public class UserService : IUserService
     public async Task SetMatrixAccount(long accountId, string fullUsername)
     {
         var (username, domain) = GetNameAndDomainFromMatrix(fullUsername);
-        var imageUrl = await GetMatrixProfilePictureUrl(username, domain);
+        var matrixImageUrl = await GetMatrixProfilePictureUrl(username, domain);
+        var imageUrl = matrixImageUrl != null ? MatrixHelpers.GetPictureUrlFromMatrixUrl(matrixImageUrl) : null;
         var ctx = new DiscoContext();
         
         // We can't delete accounts like we do with discord since we don't verify matrix accounts.
@@ -787,14 +781,14 @@ public class UserService : IUserService
             avatarUrl = imageUrl,
         });
         // Update image, if required
-        if (!string.IsNullOrWhiteSpace(imageUrl))
+        if (!string.IsNullOrWhiteSpace(imageUrl) && !string.IsNullOrWhiteSpace(matrixImageUrl))
         {
             // Fetch image
             var image = await new HttpClient().GetAsync(imageUrl);
             if (!image.IsSuccessStatusCode)
                 throw new Exception("Failed to fetch image");
             
-            var userUploadedImageId = await InsertAndUploadImage(await image.Content.ReadAsStreamAsync(), accountId);
+            var userUploadedImageId = await InsertAndUploadImage(await image.Content.ReadAsStreamAsync(), matrixImageUrl, accountId);
             // Delete old.
             var avatars = ctx.accountAvatars.Where(a => a.accountId == accountId);
             ctx.accountAvatars.RemoveRange(avatars);
@@ -839,7 +833,7 @@ public class UserService : IUserService
             {
                 var stream = await image.Content.ReadAsStreamAsync();
                 // TODO: ideally, we would fail silently if image stuff errors.
-                userImageId = await InsertAndUploadImage(stream, accountId);
+                userImageId = await InsertAndUploadImage(stream, imageUrlToFetch, accountId);
             }
             else
             {
@@ -897,11 +891,32 @@ public class UserService : IUserService
         return account;
     }
 
-    public async Task<IEnumerable<UserUploadedImage>> GetImagesAwaitingReview()
+    public async Task<IEnumerable<UserUploadedImageReview>> GetImagesAwaitingReview()
     {
         var ctx = new DiscoContext();
         var images = await ctx.images.Where(a => a.status == ImageStatus.AwaitingApproval).Take(100).ToListAsync();
-        return images;
+        var result = new List<UserUploadedImageReview>();
+        foreach (var image in images)
+        {
+            // Accounts with avatar.
+            var accountAvatars = await ctx.accountAvatars.Where(a => a.userUploadedImageId == image.userUploadedImageId).Select(c => c.accountId).ToListAsync();
+            var accounts = new List<Account>();
+            foreach (var id in accountAvatars)
+            {
+                var acc = await ctx.accounts.FirstOrDefaultAsync(a => a.accountId == id);
+                if (acc != null)
+                    accounts.Add(acc);
+            }
+            // Spaces with avatar.
+            var spaces = await ctx.matrixSpaces.Where(a => a.imageId == image.userUploadedImageId).ToListAsync();
+            result.Add(new UserUploadedImageReview()
+            {
+                image = image,
+                accounts = accounts,
+                spaces = spaces,
+            });
+        }
+        return result;
     }
 
     public async Task DeleteImage(long userUploadedImageId)
