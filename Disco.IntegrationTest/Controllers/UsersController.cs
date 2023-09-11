@@ -176,7 +176,7 @@ public class UserServiceTest : IDisposable
 
         var pendingImages = await service.GetImagesAwaitingReview();
         foreach (var image in pendingImages)
-            await service.SetImageStatus(image.userUploadedImageId, ImageStatus.Approved);
+            await service.SetImageStatus(image.image.userUploadedImageId, ImageStatus.Approved);
         
         // get pfp
         var pfp = await service.GetAvatarForAccount(account.accountId);
