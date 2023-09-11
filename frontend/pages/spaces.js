@@ -12,9 +12,10 @@ export default function Spaces(props) {
   </>
 }
 
-export async function getServerSideProps() {
+export async function getStaticProps() {
   const spaces = await api.request('/api/matrixspace/AllSpaces');
   return {
+    revalidate: 60,
     props: {
       spaces: spaces.body,
     }
