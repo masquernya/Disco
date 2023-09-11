@@ -4,7 +4,7 @@ import Link from "next/link";
 import reportEvent from "../../events/eventBase";
 import MatrixSpaces from "../matrixSpaces";
 
-export default function Home() {
+export default function Home(props) {
   return <div className='min-vh-100'>
     <div className={s.main}>
       <div className='container'>
@@ -36,6 +36,16 @@ export default function Home() {
         </div>
       </div>
     </div>
-    <MatrixSpaces header={false} limit={20} showMore={true} />
+    <MatrixSpaces spaces={props.spaces} header={false} limit={20} showMore={true} sort={(a, b) => {
+      // give low score if no pic
+      if (!a.imageUrl) {
+        return 1;
+      }
+      if (!b.imageUrl) {
+        return -1;
+      }
+
+      return b.space.matrixSpaceId - a.space.matrixSpaceId;
+    }} />
   </div>
 }
