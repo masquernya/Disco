@@ -446,7 +446,7 @@ public class UsersController : ControllerBase
     }
     
     [HttpGet("FetchAllImagesAwaitingReview")]
-    public async Task<IEnumerable<UserUploadedImage>> FetchAllImagesAwaitingReview()
+    public async Task<IEnumerable<UserUploadedImageReview>> FetchAllImagesAwaitingReview()
     {
         var sess = await GetSession();
         if (!Config.IsAdmin(sess.accountId))

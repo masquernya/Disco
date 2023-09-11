@@ -61,7 +61,7 @@ public interface IUserService
     Task UnbanAccount(long accountId);
     Task<IEnumerable<Account>> FetchAllUsers();
     Task DeleteAccount(long accountId);
-    Task<IEnumerable<UserUploadedImage>> GetImagesAwaitingReview();
+    Task<IEnumerable<UserUploadedImageReview>> GetImagesAwaitingReview();
     Task SetImageStatus(long userUploadedImageId, ImageStatus status);
     Task DeleteImage(long userUploadedImageId);
     Task<IEnumerable<TopTagWithCount>> GetTopTags();
@@ -71,5 +71,5 @@ public interface IUserService
     Task<bool> TrySetPasswordFromToken(string token, string newPassword);
     Task<string?> TryRedeemMatrixPasswordResetRequest(string matrixAccount, string token);
     Task<AccountResetPassword> CreatePasswordResetRequestForMatrix(string username, string matrixAccount);
-    Task<long> InsertAndUploadImage(Stream rawImageStream, long accountId);
+    Task<long> InsertAndUploadImage(Stream rawImageStream, string originalUrl, long accountId);
 }
