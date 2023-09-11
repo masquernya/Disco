@@ -71,4 +71,14 @@ public class MatrixSpaceController : ControllerBase
         await _matrixSpaceService.DeleteTag(sess.accountId, request.matrixSpaceId, request.tagId);
     }
 
+    [HttpPost("Ban")]
+    public async Task BanSpace(long matrixSpaceId)
+    {
+        var sess = await GetSession();
+        if (!Config.IsAdmin(sess.accountId))
+            throw new UnauthorizedException();
+        
+        await _matrixSpaceService.BanSpace(matrixSpaceId);
+    }
+
 }
