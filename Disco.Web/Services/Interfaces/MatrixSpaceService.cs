@@ -10,4 +10,5 @@ public interface IMatrixSpaceService
     Task SetIs18Plus(long accountId, long matrixSpaceId, bool is18Plus);
     Task<MatrixSpaceTag> AddTag(long accountId, long matrixSpaceId, string tag);
     Task DeleteTag(long accountId, long matrixSpaceId, long tagId);
+    Task BanSpace(long matrixSpaceId);
 }
