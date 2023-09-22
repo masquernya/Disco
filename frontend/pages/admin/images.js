@@ -1,7 +1,6 @@
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 import api from "../../lib/api";
-import UserListCard from "../../components/userListCard";
-import getConfig from "next/config";
+import Link from "next/link";
 
 export default function Images() {
   const [images, setImages] = useState(null);
@@ -79,16 +78,16 @@ export default function Images() {
 
 
                     <p className='mt-2'>Uploaded by {image.image.accountId === 1 ? 'Matrix Bot' : '#'+image.image.accountId}</p>
-                    {
-                      image.accounts.map(v => {
-                        return <p className='mb-0' key={v.accountId}>Used by {v.username}</p>
+                    <p className='mb-0'>Accounts: {
+                      image.accounts.length === 0 ? 'None' : image.accounts.map(v => {
+                        return <span className='fw-bold' key={v.accountId}>{v.username} </span>
                       })
-                    }
-                    {
-                      image.spaces.map(v => {
-                        return <p className='mb-0' key={v.matrixSpaceId}>Used in {v.name}</p>
+                    }</p>
+                    <p className='mb-0'>Spaces: {
+                      image.spaces.length === 0 ? 'None' : image.spaces.map(v => {
+                        return <span className='fw-bold' key={v.matrixSpaceId}><Link href={`/spaces?id=${v.matrixSpaceId}`}>{v.name}</Link> </span>
                       })
-                    }
+                    }</p>
                   </div>
                 </div>
               </div>
