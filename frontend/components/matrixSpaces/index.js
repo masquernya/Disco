@@ -9,6 +9,7 @@ import Buttons from "../userListCard/buttons";
 import Link from "next/link";
 import config from "next/config";
 import {getUser} from "../../lib/globalState";
+import {useRouter} from "next/router";
 
 function EditTags({matrixSpaceId, newTags, setNewTags}) {
   const [tag, setTag] = useState('');
@@ -177,6 +178,14 @@ export default function MatrixSpaces(props) {
   const [manageableSpaces, setManageableSpaces] = useState(null);
   const [show18Plus, setShow18Plus] = useState(false);
   const [showSet18Plus, setShowSet18Plus] = useState(false);
+  const [spaceId, setSpaceId] = useState(null);
+  useEffect(() => {
+    if (props.spaceId) {
+      const id = parseInt(props.spaceId, 10);
+      if (Number.isSafeInteger(id))
+        setSpaceId(id);
+    }
+  }, [props.spaceId]);
 
   useEffect(() => {
     if (!props.spaces) {
@@ -213,6 +222,9 @@ export default function MatrixSpaces(props) {
     if (show18Plus) return true;
     return !x.space.is18Plus;
   }).filter(x => {
+    if (spaceId) {
+      return x.space.matrixSpaceId === spaceId;
+    }
     if (queryLower) {
       if (x.space.name.toLowerCase().includes(queryLower)) {
         x._searchPriority = 1;
