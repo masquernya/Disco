@@ -27,6 +27,7 @@ public class BotController : ControllerBase
         this.spaceService = spaceService;
     }
 
+    [NonAction]
     public bool IsAuthorized()
     {
         var providedValue = httpRequestService.GetRequestHeader(BotAuthorizationHeaderName);
