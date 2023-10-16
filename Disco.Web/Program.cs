@@ -16,9 +16,8 @@ Config.frontendUrl = builder.Configuration.GetValue<string>("FrontedUrl");
 Config.adminUserId = builder.Configuration.GetValue<long>("AdminUserId");
 Config.hcaptchaPrivate = builder.Configuration.GetValue<string>("HCaptcha:Private");
 Config.hcatpchaPublic = builder.Configuration.GetValue<string>("HCaptcha:Public");
-var folder = Environment.SpecialFolder.LocalApplicationData;
-var path = Environment.GetFolderPath(folder);
-DiscoContext.dbPath = System.IO.Path.Join(path, "disco.db");
+var dbFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+DiscoContext.dbPath = System.IO.Path.Join(dbFolderPath, "disco.db");
 var FrontendCorsPolicy = "_frontendCorsAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
@@ -38,7 +37,10 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(g =>
+{
+    g.SchemaGeneratorOptions.SchemaIdSelector = (type) => type.FullName;
+});
 var serverBaseUrl = builder.Configuration.GetValue<string>("BackendBaseUrl");
 var clientId = builder.Configuration.GetValue<string>("DiscordOauth:ClientId");
 var clientSecret = builder.Configuration.GetValue<string>("DiscordOauth:Secret");
@@ -51,16 +53,29 @@ var discord = new DiscordService(clientId, clientSecret, redirect);
 UserService.Configure(fullImagePath);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddLogging();
-builder.Services.AddSingleton<ICacheService>(new MemoryCacheService());
-builder.Services.AddSingleton<ICacheHelperService>(s => new CacheHelperService(s.GetRequiredService<ICacheService>(), s.GetRequiredService<ILogger<CacheHelperService>>()));
-builder.Services.AddTransient<IUserService>(c => new UserService(c.GetRequiredService<ILogger<UserService>>(), c.GetRequiredService<ICacheHelperService>()));
-builder.Services.AddSingleton<IDiscordService>(discord);
-builder.Services.AddSingleton<IRateLimitService>(_ => new InMemoryRateLimitService());
-builder.Services.AddSingleton<ICaptchaService>(c => new CaptchaService(c.GetRequiredService<ILogger<CaptchaService>>()));
+// specializations
 builder.Services.AddSingleton<IBotService>(new BotService(botKey));
-builder.Services.AddTransient<IHttpRequestService>(s =>
-    new HttpRequestService(s.GetRequiredService<IHttpContextAccessor>()));
-builder.Services.AddTransient<IMatrixSpaceService>(c => new MatrixSpaceService(c.GetRequiredService<ILogger<IMatrixSpaceService>>(), c.GetRequiredService<ICacheHelperService>(), c.GetRequiredService<IUserService>()));
+builder.Services.AddSingleton<IDiscordService>(discord);
+// everything else
+var transientServices = Type.GetType("Disco.Web.Services.ITransientDiscoService`1, Disco.Web")!;
+var singletonServices = Type.GetType("Disco.Web.Services.ISingletonDiscoService`1, Disco.Web")!;
+var services = typeof(Program).Assembly.GetTypes().Where(t => t.IsClass && !t.IsAbstract && t.Namespace == "Disco.Web.Services" && t.GetInterfaces().Any(i => i.IsGenericType && (i.GetGenericTypeDefinition() == transientServices || i.GetGenericTypeDefinition() == singletonServices)));
+foreach (var service in services)
+{
+    var interfaces = service.GetInterfaces().Where(i => i.IsGenericType && (i.GetGenericTypeDefinition() == transientServices || i.GetGenericTypeDefinition() == singletonServices));
+    foreach (var @interface in interfaces)
+    {
+        var serviceType = @interface.GetGenericArguments()[0];
+        if (@interface.GetGenericTypeDefinition() == transientServices)
+        {
+            builder.Services.AddTransient(serviceType, service);
+        }
+        else if (@interface.GetGenericTypeDefinition() == singletonServices)
+        {
+            builder.Services.AddSingleton(serviceType, service);
+        }
+    }
+}
 
 // App
 var app = builder.Build();
