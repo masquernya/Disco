@@ -9,7 +9,7 @@ public class UnitTestUserService
     [Fact]
     public async Task TestPasswordHash()
     {
-        var log = new Moq.Mock<Microsoft.Extensions.Logging.ILogger>();
+        var log = new Moq.Mock<Microsoft.Extensions.Logging.ILogger<UserService>>();
         var cacheHelper = new Moq.Mock<ICacheHelperService>();
         var user = new UserService(log.Object, cacheHelper.Object);
         var hash = await user.HashPassword("password");
