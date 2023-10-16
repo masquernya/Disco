@@ -13,11 +13,11 @@ using SixLabors.ImageSharp.Formats.Webp;
 
 namespace Disco.Web.Services;
 
-public class UserService : IUserService
+public class UserService : IUserService, IDiscoService, ITransientDiscoService<IUserService>
 {
     private ILogger logger { get; set; }
     private ICacheHelperService cache { get; set; }
-    public UserService(ILogger logger, ICacheHelperService cache)
+    public UserService(ILogger<UserService> logger, ICacheHelperService cache)
     {
         this.logger = logger;
         this.cache = cache;

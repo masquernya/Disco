@@ -6,7 +6,7 @@ public class CacheEntry
     public DateTime? expiry { get; set; }
 }
 
-public class MemoryCacheService : ICacheService
+public class MemoryCacheService : ICacheService, IDiscoService, ISingletonDiscoService<ICacheService>
 {
     private Dictionary<string, CacheEntry> cache = new();
     private Object mutex = new();

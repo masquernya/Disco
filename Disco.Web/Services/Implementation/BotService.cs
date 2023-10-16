@@ -1,6 +1,6 @@
 namespace Disco.Web.Services;
 
-public class BotService : IBotService
+public class BotService : IBotService, IDiscoService
 {
     private readonly string _authorizationKey;
 

@@ -13,11 +13,11 @@ public interface ICacheHelperService
     Task RemoveAsync(string key);
 }
 
-public class CacheHelperService : ICacheHelperService
+public class CacheHelperService : ICacheHelperService, ISingletonDiscoService<ICacheHelperService>
 {
     private ICacheService cache;
     private ILogger logger;
-    public CacheHelperService(ICacheService cache, ILogger logger)
+    public CacheHelperService(ICacheService cache, ILogger<CacheHelperService> logger)
     {
         this.cache = cache;
         this.logger = logger;

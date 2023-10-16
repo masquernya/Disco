@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Disco.Web.Services;
 
-public class MatrixSpaceService : IMatrixSpaceService
+public class MatrixSpaceService : IMatrixSpaceService, IDiscoService, ITransientDiscoService<IMatrixSpaceService>
 {
     private ILogger logger { get; set; }
     private ICacheHelperService cache { get; set; }
     private IUserService userService { get; set; }
 
-    public MatrixSpaceService(ILogger logger, ICacheHelperService cache, IUserService userService)
+    public MatrixSpaceService(ILogger<MatrixSpaceService> logger, ICacheHelperService cache, IUserService userService)
     {
         this.logger = logger;
         this.cache = cache;

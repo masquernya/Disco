@@ -1,6 +1,6 @@
 namespace Disco.Web.Services;
 
-public class HttpRequestService : IHttpRequestService
+public class HttpRequestService : IHttpRequestService, IDiscoService, ITransientDiscoService<IHttpRequestService>
 {
     private readonly IHttpContextAccessor _context;
     public HttpRequestService(IHttpContextAccessor context)

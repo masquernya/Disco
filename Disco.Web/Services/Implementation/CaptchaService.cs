@@ -8,11 +8,11 @@ internal class HCaptchaJsonResponse
     public bool success { get; set; }
 }
 
-public class CaptchaService : ICaptchaService
+public class CaptchaService : ICaptchaService, IDiscoService, ISingletonDiscoService<ICaptchaService>
 {
     private ILogger logger { get; }
 
-    public CaptchaService(ILogger logger)
+    public CaptchaService(ILogger<CaptchaService> logger)
     {
         this.logger = logger;
     }

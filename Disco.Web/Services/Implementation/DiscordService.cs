@@ -6,7 +6,7 @@ using Disco.Web.Models.User;
 
 namespace Disco.Web.Services;
 
-public class DiscordService : IDiscordService
+public class DiscordService : IDiscordService, IDiscoService
 {
     private string _clientId { get; }
     private string _secret { get; }

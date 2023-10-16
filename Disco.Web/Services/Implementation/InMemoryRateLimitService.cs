@@ -1,6 +1,6 @@
 namespace Disco.Web.Services;
 
-public class InMemoryRateLimitService : IRateLimitService
+public class InMemoryRateLimitService : IRateLimitService, IDiscoService, ISingletonDiscoService<IRateLimitService>
 {
     private Dictionary<string, List<DateTime>> rateLimit { get; } = new();
     private Object rateLimitMux { get; } = new();
