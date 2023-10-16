@@ -26,7 +26,7 @@ public class FakeDisposable : IDisposable
     }
 }
 
-public class LoggerTest : ILogger
+public class LoggerTest<T> : ILogger<T>
 {
     private readonly ITestOutputHelper _testOutputHelper;
     public LoggerTest(ITestOutputHelper helper)
@@ -65,9 +65,8 @@ public class UserServiceTest : IDisposable
         var db = new DiscoContext();
         db.Database.Migrate();
 
-        var log = new LoggerTest(_testOutputHelper);
         UserService.Configure(Path.GetTempPath() + "/images/");
-        this.service = new UserService(log, new CacheHelperService(new MemoryCacheService(), log));
+        this.service = new UserService(new LoggerTest<UserService>(_testOutputHelper), new CacheHelperService(new MemoryCacheService(), new LoggerTest<CacheHelperService>(_testOutputHelper)));
     }
 
     public void Dispose()
